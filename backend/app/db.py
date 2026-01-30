@@ -7,11 +7,9 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
-
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 Base = declarative_base()
-
 
 def get_db():
     db = SessionLocal()

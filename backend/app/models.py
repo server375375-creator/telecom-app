@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, Text, TIMESTAMP, text
 from .db import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -9,4 +8,13 @@ class User(Base):
     username = Column(Text, unique=True, nullable=False)
     password_hash = Column(Text, nullable=False)
     role = Column(Text, nullable=False, server_default=text("'technician'"))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+
+class Warehouse(Base):
+    __tablename__ = "warehouses"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False)
+    location = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
