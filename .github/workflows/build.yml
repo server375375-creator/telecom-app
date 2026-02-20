@@ -41,19 +41,17 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app for Windows
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        working-directory: frontend
+        run: npx tauri build --target x86_64-pc-windows-msvc
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          projectPath: frontend
-          tagName: v__VERSION__
-          releaseName: 'TelecomApp v__VERSION__'
-          releaseBody: 'See CHANGELOG.md for details.'
-          releaseDraft: true
-          prerelease: false
-          args: --target x86_64-pc-windows-msvc
+          name: windows-build
+          path: |
+            frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+          retention-days: 30
 
   build-linux:
     name: Build for Linux
@@ -88,65 +86,14 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app for Linux
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          projectPath: frontend
-          tagName: v__VERSION__
-          releaseName: 'TelecomApp v__VERSION__'
-          releaseBody: 'See CHANGELOG.md for details.'
-          releaseDraft: true
-          prerelease: false
+        working-directory: frontend
+        run: npx tauri build
 
-  # Создание обновлений для автообновления
-  create-update:
-    name: Create Update Manifest
-    needs: [build-windows, build-linux]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-build
-          path: artifacts/windows
-
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-build
-          path: artifacts/linux
-
-      - name: Create update manifest
-        run: |
-          # Создаём манифест обновлений для Tauri updater
-          cat > update.json << EOF
-          {
-            "version": "${{ github.run_number }}",
-            "notes": "Auto update",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/TelecomApp_${{ github.run_number }}_x64-setup.exe"
-              },
-              "linux-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/telecomapp_${{ github.run_number }}_amd64.deb"
-              }
-            }
-          }
-          EOF
-
-      - name: Upload update manifest
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: update-manifest
-          path: update.json
+          name: linux-build
+          path: |
+            frontend/src-tauri/target/release/bundle/deb/*.deb
+            frontend/src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 30
