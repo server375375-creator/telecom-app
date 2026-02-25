@@ -11,11 +11,17 @@ export interface TokenResponse {
   token_type: string;
 }
 
-// Регистрация
+// Регистрация (role убран - все новые пользователи = technician)
 export interface RegisterData {
   username: string;
   password: string;
-  role?: string;
+}
+
+// Данные для создания админа (требуется секретный ключ)
+export interface CreateAdminData {
+  username: string;
+  password: string;
+  adminSecretKey: string;
 }
 
 // Логин

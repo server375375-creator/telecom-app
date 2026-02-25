@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +17,9 @@ from .auth import (
 from .warehouses import router as warehouses_router
 
 app = FastAPI(title="Server375 API")
+
+# Секретный ключ для создания админов (установите через env переменную)
+ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "change-me-in-production")
 
 # CORS для фронтенда
 app.add_middleware(
@@ -48,8 +52,12 @@ def hello():
 
 @app.post("/auth/register")
 def register(data: RegisterIn, db: Session = Depends(get_db)):
+    """
+    Регистрация нового пользователя.
+    Все новые пользователи получают роль 'technician'.
+    Создать админа можно только через секретный эндпоинт /auth/create-admin.
+    """
     username = data.username.strip()
-    role = (data.role or "technician").strip() if data.role else "technician"
 
     if not username:
         raise HTTPException(status_code=400, detail="Username is required")
@@ -58,15 +66,67 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
 
+    # Все новые пользователи - technician (нельзя указать роль при регистрации!)
     db.execute(
         text("""
             INSERT INTO users (username, password_hash, role)
-            VALUES (:u, :p, :r)
+            VALUES (:u, :p, 'technician')
         """),
-        {"u": username, "p": hash_password(data.password), "r": role},
+        {"u": username, "p": hash_password(data.password)},
     )
     db.commit()
-    return {"status": "created"}
+    return {"status": "created", "role": "technician"}
+
+
+@app.post("/auth/create-admin")
+def create_admin(
+    data: RegisterIn,
+    db: Session = Depends(get_db),
+    admin_key: str = None
+):
+    """
+    Создание админа - ТОЛЬКО с секретным ключом!
+    
+    Для создания админа нужно передать заголовок:
+    X-Admin-Secret-Key: ваш_секретный_ключ
+    
+    Секретный ключ задаётся через env переменную ADMIN_SECRET_KEY.
+    """
+    # Проверяем секретный ключ
+    if admin_key != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin secret key")
+
+    username = data.username.strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+
+    existing = get_user_by_username(db, username)
+    if existing:
+        # Если пользователь существует - обновляем роль на admin
+        db.execute(
+            text("UPDATE users SET role = 'admin' WHERE username = :u"),
+            {"u": username},
+        )
+        db.commit()
+        return {"status": "updated", "username": username, "role": "admin"}
+    
+    # Создаём нового админа
+    db.execute(
+        text("""
+            INSERT INTO users (username, password_hash, role)
+            VALUES (:u, :p, 'admin')
+        """),
+        {"u": username, "p": hash_password(data.password)},
+    )
+    db.commit()
+    return {"status": "created", "username": username, "role": "admin"}
+
+
+def require_admin(user=Depends(get_current_user)):
+    """Зависимость для проверки прав админа"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
 
 @app.post("/auth/login", response_model=TokenOut)
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

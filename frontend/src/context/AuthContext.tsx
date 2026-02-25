@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string, role?: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
 }
@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(userData);
   };
 
-  const register = async (username: string, password: string, role?: string) => {
-    await apiRegister({ username, password, role });
+  const register = async (username: string, password: string) => {
+    await apiRegister({ username, password });
   };
 
   const logout = () => {

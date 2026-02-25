@@ -6,7 +6,6 @@ export const Register = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('technician');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -29,7 +28,8 @@ export const Register = () => {
     setLoading(true);
 
     try {
-      await register(username, password, role);
+      // Роль больше не передаётся - все новые пользователи = technician
+      await register(username, password);
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка регистрации');
@@ -41,9 +41,12 @@ export const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">
           Регистрация
         </h2>
+        <p className="text-center text-gray-500 text-sm mb-6">
+          Все новые пользователи получают роль "Техник"
+        </p>
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -78,7 +81,7 @@ export const Register = () => {
             />
           </div>
 
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-gray-700 text-sm font-medium mb-2">
               Подтвердите пароль
             </label>
@@ -89,20 +92,6 @@ export const Register = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Роль
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="technician">Техник</option>
-              <option value="admin">Администратор</option>
-            </select>
           </div>
 
           <button
