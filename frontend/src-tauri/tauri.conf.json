@@ -49,9 +49,9 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://your-server.com/updates/{{target}}/{{arch}}/{{current_version}}"
+        "https://server375375-creator.github.io/telecom-app-updates/{{target}}-{{arch}}.json"
       ],
-      "pubkey": ""
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZFNEM4ODQ5Mzg1RTJDRjIKUldUeUxGNDRTWWhNL2lBMjJBQVYvQ3lrYWRIYzhFc0RDd3Y2UXFyOEZZbzZXVmIzRWdHM2Q2MVIK"
     }
   }
 }

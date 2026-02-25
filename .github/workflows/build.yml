@@ -1,4 +1,4 @@
-# GitHub Actions для сборки Tauri приложения под Windows
+# GitHub Actions для сборки Tauri приложения с автообновлением
 # Автоматически собирает .exe и .msi установщики при push в main
 
 name: Build Desktop App
@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:  # Ручной запуск
+
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
 jobs:
   build-windows:
@@ -51,6 +55,7 @@ jobs:
           path: |
             frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
             frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           retention-days: 30
 
   build-linux:
@@ -96,4 +101,88 @@ jobs:
           path: |
             frontend/src-tauri/target/release/bundle/deb/*.deb
             frontend/src-tauri/target/release/bundle/appimage/*.AppImage
+            frontend/src-tauri/target/release/bundle/appimage/*.sig
           retention-days: 30
+
+  # Создание манифеста обновлений и публикация на GitHub Pages
+  publish-updates:
+    name: Publish Update Manifest
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: artifacts/windows
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: artifacts/linux
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(cat frontend/src-tauri/tauri.conf.json | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Read signatures
+        id: signatures
+        run: |
+          WINDOWS_SIG=$(cat artifacts/windows/*.sig 2>/dev/null || echo "")
+          LINUX_SIG=$(cat artifacts/linux/*.sig 2>/dev/null || echo "")
+          echo "windows_sig=$WINDOWS_SIG" >> $GITHUB_OUTPUT
+          echo "linux_sig=$LINUX_SIG" >> $GITHUB_OUTPUT
+
+      - name: Create update manifests
+        run: |
+          mkdir -p updates
+          
+          # Windows manifest
+          cat > updates/windows-x86_64.json << EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "${{ steps.signatures.outputs.windows_sig }}",
+                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/TelecomApp_${{ steps.version.outputs.version }}_x64-setup.exe"
+              }
+            }
+          }
+          EOF
+          
+          # Linux manifest
+          cat > updates/linux-x86_64.json << EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "linux-x86_64": {
+                "signature": "${{ steps.signatures.outputs.linux_sig }}",
+                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/telecomapp_${{ steps.version.outputs.version }}_amd64.AppImage"
+              }
+            }
+          }
+          EOF
+
+      - name: Upload update manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-manifests
+          path: updates/
+          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./updates
+          publish_branch: gh-pages-updates
