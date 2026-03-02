@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse } from '../api/equipment';
 import { listWarehouses } from '../api/warehouses';
-import { ROLE_LABELS } from '../types';
+import { ROLE_LABELS, Warehouse } from '../types';
 
 interface User {
   id: number;
@@ -15,12 +15,6 @@ interface User {
 interface RoleOption {
   value: string;
   label: string;
-}
-
-interface Warehouse {
-  id: number;
-  name: string;
-  is_central: boolean;
 }
 
 export const UsersPage = () => {
