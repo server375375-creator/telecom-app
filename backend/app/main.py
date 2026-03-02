@@ -36,7 +36,7 @@ VALID_ROLES = [
 # CORS для фронтенда
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "tauri://localhost"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "tauri://localhost", "https://tauri.localhost", "http://tauri.localhost", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -143,11 +143,13 @@ def create_user_with_role(
     return {"status": "created", "username": username, "role": role}
 
 
+from fastapi import Header
+
 @app.post("/auth/create-admin")
 def create_admin(
     data: RegisterIn,
     db: Session = Depends(get_db),
-    admin_key: str = None
+    admin_key: str = Header(None, alias="X-Admin-Secret-Key")
 ):
     """
     Создание админа - ТОЛЬКО с секретным ключом!
