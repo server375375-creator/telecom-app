@@ -9,17 +9,7 @@ import {
   listTransactions,
   listEquipment
 } from '../api/equipment';
-import type { Equipment } from '../types';
-
-interface Warehouse {
-  id: number;
-  name: string;
-  location: string | null;
-  description: string | null;
-  is_central: boolean;
-  user_id: number | null;
-  user_name: string | null;
-}
+import type { Equipment, Warehouse } from '../types';
 
 interface Transaction {
   id: number;
