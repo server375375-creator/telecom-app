@@ -20,6 +20,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://app:app_password_change_me@postgres:5432/appdb
       JWT_SECRET: CHANGE_ME_SECRET
+      ADMIN_SECRET_KEY: "998099"
     ports:
       - "8000:8000"
     depends_on:
