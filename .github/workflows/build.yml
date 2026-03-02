@@ -10,6 +10,10 @@ on:
     branches: [main, master]
   workflow_dispatch:  # Ручной запуск
 
+permissions:
+  contents: write
+  actions: read
+
 env:
   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
