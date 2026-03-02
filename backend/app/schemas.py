@@ -24,12 +24,49 @@ class WarehouseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     location: str | None = None
     description: str | None = None
+    is_central: bool = False
+    user_id: int | None = None  # Привязка к монтажнику
 
 class WarehouseOut(BaseModel):
     id: int
     name: str
     location: str | None = None
     description: str | None = None
+    is_central: bool = False
+    user_id: int | None = None
+    user_name: str | None = None  # Имя монтажника
+    created_at: datetime
+
+# -------- INVENTORY TRANSACTIONS --------
+
+class TransferRequest(BaseModel):
+    serial_number: str  # Серийный номер для перемещения
+    to_warehouse_id: int  # Куда перемещаем
+    notes: str | None = None
+
+class AddStockRequest(BaseModel):
+    equipment_id: int
+    warehouse_id: int
+    quantity: int = Field(gt=0)
+    notes: str | None = None
+
+class WriteOffRequest(BaseModel):
+    equipment_id: int
+    warehouse_id: int
+    quantity: int = Field(gt=0)
+    serial_number: str | None = None  # Для серийных
+    notes: str | None = None
+
+class TransactionOut(BaseModel):
+    id: int
+    equipment_name: str
+    serial_number: str | None = None
+    from_warehouse: str | None = None
+    to_warehouse: str | None = None
+    quantity: int
+    transaction_type: str
+    notes: str | None = None
+    created_by_name: str
     created_at: datetime
 
 # -------- EQUIPMENT --------

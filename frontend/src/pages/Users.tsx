@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { listUsers, getRoles, createUserWithRole, updateUserRole } from '../api/equipment';
+import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse } from '../api/equipment';
+import { listWarehouses } from '../api/warehouses';
 import { ROLE_LABELS } from '../types';
 
 interface User {
   id: number;
   username: string;
   role: string;
+  warehouse_id: number | null;
+  warehouse_name: string | null;
 }
 
 interface RoleOption {
@@ -14,10 +17,17 @@ interface RoleOption {
   label: string;
 }
 
+interface Warehouse {
+  id: number;
+  name: string;
+  is_central: boolean;
+}
+
 export const UsersPage = () => {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateUser, setShowCreateUser] = useState(false);
   
@@ -34,12 +44,14 @@ export const UsersPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersData, rolesData] = await Promise.all([
+      const [usersData, rolesData, warehousesData] = await Promise.all([
         listUsers(),
-        getRoles()
+        getRoles(),
+        listWarehouses()
       ]);
       setUsers(usersData);
       setRoles(rolesData);
+      setWarehouses(warehousesData);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -65,6 +77,15 @@ export const UsersPage = () => {
       loadData();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Ошибка изменения роли');
+    }
+  };
+
+  const handleWarehouseChange = async (userId: number, warehouseId: number | null) => {
+    try {
+      await assignUserWarehouse(userId, warehouseId);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка привязки склада');
     }
   };
 
@@ -97,29 +118,18 @@ export const UsersPage = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя пользователя</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя пользователя</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">{user.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{user.username}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                      user.role === 'finance_director' || user.role === 'tech_director' ? 'bg-blue-100 text-blue-800' :
-                      user.role === 'accountant' ? 'bg-green-100 text-green-800' :
-                      user.role === 'economist' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-500">{user.id}</td>
+                  <td className="px-4 py-3 whitespace-nowrap font-medium">{user.username}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
@@ -129,6 +139,20 @@ export const UsersPage = () => {
                         <option key={r.value} value={r.value}>{r.label}</option>
                       ))}
                       <option value="admin">Администратор</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <select
+                      value={user.warehouse_id || ''}
+                      onChange={(e) => handleWarehouseChange(user.id, e.target.value ? Number(e.target.value) : null)}
+                      className="border rounded px-2 py-1 text-sm min-w-[200px]"
+                    >
+                      <option value="">Не привязан</option>
+                      {warehouses.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name} {w.is_central ? '(Центральный)' : ''}
+                        </option>
+                      ))}
                     </select>
                   </td>
                 </tr>

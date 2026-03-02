@@ -16,6 +16,7 @@ from .auth import (
 )
 from .warehouses import router as warehouses_router
 from .equipment import router as equipment_router
+from .inventory import router as inventory_router
 
 app = FastAPI(title="Server375 API")
 
@@ -44,6 +45,7 @@ app.add_middleware(
 # Подключаем роутеры
 app.include_router(warehouses_router)
 app.include_router(equipment_router)
+app.include_router(inventory_router)
 
 
 @app.on_event("startup")
@@ -219,8 +221,57 @@ def list_users(
     if admin["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    result = db.execute(text("SELECT id, username, role FROM users ORDER BY id"))
-    return [{"id": row[0], "username": row[1], "role": row[2]} for row in result]
+    result = db.execute(text("""
+        SELECT u.id, u.username, u.role, u.warehouse_id, w.name as warehouse_name
+        FROM users u
+        LEFT JOIN warehouses w ON u.warehouse_id = w.id
+        ORDER BY u.id
+    """))
+    return [{
+        "id": row[0], 
+        "username": row[1], 
+        "role": row[2],
+        "warehouse_id": row[3],
+        "warehouse_name": row[4]
+    } for row in result]
+
+
+@app.patch("/users/{user_id}/warehouse")
+def assign_user_warehouse(
+    user_id: int,
+    warehouse_id: int | None,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_user)
+):
+    """Привязать склад к пользователю (только для админа)"""
+    if admin["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Проверяем пользователя
+    user = db.execute(
+        text("SELECT id FROM users WHERE id = :id"),
+        {"id": user_id}
+    ).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Если warehouse_id указан - проверяем склад
+    if warehouse_id:
+        warehouse = db.execute(
+            text("SELECT id FROM warehouses WHERE id = :id"),
+            {"id": warehouse_id}
+        ).first()
+        if not warehouse:
+            raise HTTPException(status_code=404, detail="Warehouse not found")
+    
+    # Обновляем
+    db.execute(
+        text("UPDATE users SET warehouse_id = :wid WHERE id = :uid"),
+        {"wid": warehouse_id, "uid": user_id}
+    )
+    db.commit()
+    
+    return {"status": "updated", "user_id": user_id, "warehouse_id": warehouse_id}
 
 
 @app.patch("/users/{user_id}/role")

@@ -85,3 +85,66 @@ export const updateUserRole = async (userId: number, role: string) => {
   });
   return response.data;
 };
+
+// Привязать склад к пользователю (admin only)
+export const assignUserWarehouse = async (userId: number, warehouseId: number | null) => {
+  const response = await api.patch(`/users/${userId}/warehouse`, null, {
+    params: { warehouse_id: warehouseId }
+  });
+  return response.data;
+};
+
+// ==================== INVENTORY ====================
+
+// Переместить оборудование по серийному номеру
+export const transferEquipment = async (serialNumber: string, toWarehouseId: number, notes?: string) => {
+  const response = await api.post('/inventory/transfer', {
+    serial_number: serialNumber,
+    to_warehouse_id: toWarehouseId,
+    notes
+  });
+  return response.data;
+};
+
+// Добавить материалы на склад
+export const addStock = async (equipmentId: number, warehouseId: number, quantity: number, notes?: string) => {
+  const response = await api.post('/inventory/add-stock', {
+    equipment_id: equipmentId,
+    warehouse_id: warehouseId,
+    quantity,
+    notes
+  });
+  return response.data;
+};
+
+// Списать материалы
+export const writeOffStock = async (data: {
+  equipment_id: number;
+  warehouse_id: number;
+  quantity: number;
+  serial_number?: string;
+  notes?: string;
+}) => {
+  const response = await api.post('/inventory/write-off', data);
+  return response.data;
+};
+
+// История перемещений
+export const listTransactions = async (limit?: number) => {
+  const response = await api.get('/inventory/transactions', {
+    params: { limit }
+  });
+  return response.data;
+};
+
+// Остатки на центральном складе
+export const getCentralStock = async () => {
+  const response = await api.get('/inventory/central-stock');
+  return response.data;
+};
+
+// Остатки на складе
+export const getWarehouseStock = async (warehouseId: number) => {
+  const response = await api.get(`/warehouses/${warehouseId}/stock`);
+  return response.data;
+};
