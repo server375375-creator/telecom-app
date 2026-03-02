@@ -55,12 +55,12 @@ export interface LoginData {
 export interface Warehouse {
   id: number;
   name: string;
-  location: string | null;
-  description: string | null;
+  location?: string | null;
+  description?: string | null;
   is_central?: boolean;
   user_id?: number | null;
   user_name?: string | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface WarehouseCreate {
