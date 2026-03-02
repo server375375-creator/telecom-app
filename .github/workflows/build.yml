@@ -1,5 +1,5 @@
 # GitHub Actions для сборки Tauri приложения с автообновлением
-# Автоматически собирает .exe и .msi установщики при push в main
+# Автоматически собирает .exe и .AppImage установщики при push в main
 
 name: Build Desktop App
 
@@ -104,10 +104,54 @@ jobs:
             frontend/src-tauri/target/release/bundle/appimage/*.sig
           retention-days: 30
 
-  # Создание манифеста обновлений и публикация на GitHub Pages
+  # Создание релиза с файлами
+  create-release:
+    name: Create Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: artifacts/windows
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: artifacts/linux
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(cat frontend/src-tauri/tauri.conf.json | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/windows/*.exe
+            artifacts/windows/*.msi
+            artifacts/linux/*.AppImage
+            artifacts/linux/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Публикация манифеста обновлений в отдельный репозиторий
   publish-updates:
     name: Publish Update Manifest
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, create-release]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
@@ -141,48 +185,50 @@ jobs:
           echo "windows_sig=$WINDOWS_SIG" >> $GITHUB_OUTPUT
           echo "linux_sig=$LINUX_SIG" >> $GITHUB_OUTPUT
 
+      - name: Checkout updates repository
+        uses: actions/checkout@v4
+        with:
+          repository: server375375-creator/telecom-app-updates
+          token: ${{ secrets.UPDATES_TOKEN }}
+          path: updates-repo
+
       - name: Create update manifests
         run: |
-          mkdir -p updates
+          cd updates-repo
           
           # Windows manifest
-          cat > updates/windows-x86_64.json << EOF
+          cat > windows-x86_64.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
             "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
               "windows-x86_64": {
                 "signature": "${{ steps.signatures.outputs.windows_sig }}",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/TelecomApp_${{ steps.version.outputs.version }}_x64-setup.exe"
+                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/TelecomApp_${{ steps.version.outputs.version }}_x64-setup.exe"
               }
             }
           }
           EOF
           
           # Linux manifest
-          cat > updates/linux-x86_64.json << EOF
+          cat > linux-x86_64.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
             "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
               "linux-x86_64": {
                 "signature": "${{ steps.signatures.outputs.linux_sig }}",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/telecomapp_${{ steps.version.outputs.version }}_amd64.AppImage"
+                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/telecomapp_${{ steps.version.outputs.version }}_amd64.AppImage"
               }
             }
           }
           EOF
 
-      - name: Upload update manifests
-        uses: actions/upload-artifact@v4
-        with:
-          name: update-manifests
-          path: updates/
-          retention-days: 30
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./updates
-          publish_branch: gh-pages-updates
+      - name: Push updates
+        run: |
+          cd updates-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update to v${{ steps.version.outputs.version }}"
+          git push
