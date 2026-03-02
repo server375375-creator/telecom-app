@@ -7,6 +7,9 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
   return response.data;
 };
 
+// Алиас для совместимости
+export const listWarehouses = getWarehouses;
+
 // Создать склад
 export const createWarehouse = async (data: WarehouseCreate): Promise<Warehouse> => {
   const response = await api.post('/warehouses', data);

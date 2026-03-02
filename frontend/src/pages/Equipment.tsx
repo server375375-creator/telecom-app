@@ -9,7 +9,7 @@ import {
   updateSerialStatus 
 } from '../api/equipment';
 import type { Equipment, SerialNumber } from '../types';
-import { SERIAL_STATUS_LABELS, ROLE_LABELS } from '../types';
+import { SERIAL_STATUS_LABELS } from '../types';
 
 export const EquipmentPage = () => {
   const { isAdmin } = useAuth();
@@ -34,8 +34,9 @@ export const EquipmentPage = () => {
     unit: 'шт'
   });
   const [newSerial, setNewSerial] = useState({
+    equipment_id: 0,
     serial_number: '',
-    status: 'available' as const,
+    status: 'available',
     notes: ''
   });
 

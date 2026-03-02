@@ -7,8 +7,7 @@ import {
   writeOffStock, 
   getWarehouseStock,
   listTransactions,
-  listEquipment,
-  getCentralStock
+  listEquipment
 } from '../api/equipment';
 import type { Equipment } from '../types';
 
@@ -188,8 +187,6 @@ export const Warehouses = () => {
       default: return type;
     }
   };
-
-  const centralWarehouse = warehouses.find(w => w.is_central);
 
   return (
     <div className="p-6">
