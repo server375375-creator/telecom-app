@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse } from '../api/equipment';
 import { listWarehouses } from '../api/warehouses';
-import { ROLE_LABELS, Warehouse } from '../types';
+import { ROLE_LABELS } from '../types';
+import type { Warehouse } from '../types';
 
 interface User {
   id: number;

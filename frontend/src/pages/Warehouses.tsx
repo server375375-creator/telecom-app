@@ -9,7 +9,8 @@ import {
   listTransactions,
   listEquipment
 } from '../api/equipment';
-import type { Equipment, Warehouse } from '../types';
+import type { Equipment } from '../types';
+import type { Warehouse } from '../types';
 
 interface Transaction {
   id: number;
