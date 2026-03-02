@@ -8,7 +8,7 @@ import {
   searchBySerialNumber,
   updateSerialStatus 
 } from '../api/equipment';
-import type { Equipment, SerialNumber } from '../types';
+import type { Equipment, SerialNumber, SerialNumberCreate } from '../types';
 import { SERIAL_STATUS_LABELS } from '../types';
 
 export const EquipmentPage = () => {
@@ -33,7 +33,7 @@ export const EquipmentPage = () => {
     category: '',
     unit: 'шт'
   });
-  const [newSerial, setNewSerial] = useState({
+  const [newSerial, setNewSerial] = useState<SerialNumberCreate>({
     equipment_id: 0,
     serial_number: '',
     status: 'available',
@@ -104,7 +104,7 @@ export const EquipmentPage = () => {
     if (!showAddSerial) return;
     try {
       await addSerialNumber(showAddSerial, newSerial);
-      setNewSerial({ serial_number: '', status: 'available', notes: '' });
+      setNewSerial({ equipment_id: 0, serial_number: '', status: 'available', notes: '' });
       setShowAddSerial(null);
       loadSerials(showAddSerial);
     } catch (err: any) {

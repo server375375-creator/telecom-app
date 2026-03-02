@@ -12,6 +12,8 @@ export interface User {
   id: number;
   username: string;
   role: UserRole;
+  warehouse_id?: number | null;
+  warehouse_name?: string | null;
 }
 
 // Названия ролей на русском
@@ -55,6 +57,9 @@ export interface Warehouse {
   name: string;
   location: string | null;
   description: string | null;
+  is_central?: boolean;
+  user_id?: number | null;
+  user_name?: string | null;
   created_at: string;
 }
 
@@ -62,6 +67,8 @@ export interface WarehouseCreate {
   name: string;
   location?: string;
   description?: string;
+  is_central?: boolean;
+  user_id?: number | null;
 }
 
 // Оборудование
