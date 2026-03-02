@@ -15,28 +15,6 @@
     "shell:allow-open",
     "dialog:default",
     "updater:default",
-    "http:default",
-    {
-      "identifier": "http:allow-fetch",
-      "allow": [
-        {
-          "url": "http://localhost:8000/**"
-        },
-        {
-          "url": "http://127.0.0.1:8000/**"
-        }
-      ]
-    },
-    {
-      "identifier": "http:allow-make-request",
-      "allow": [
-        {
-          "url": "http://localhost:8000/**"
-        },
-        {
-          "url": "http://127.0.0.1:8000/**"
-        }
-      ]
-    }
+    "http:default"
   ]
 }
