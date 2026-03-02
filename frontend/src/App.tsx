@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Layout } from './components/Layout';
@@ -9,8 +10,13 @@ import { Warehouses } from './pages/Warehouses';
 import { WarehouseForm } from './pages/WarehouseForm';
 import { EquipmentPage } from './pages/Equipment';
 import { UsersPage } from './pages/Users';
+import { initApi } from './api/client';
 
 function App() {
+  // Инициализация API при старте
+  useEffect(() => {
+    initApi();
+  }, []);
   return (
     <AuthProvider>
       <BrowserRouter>
