@@ -213,8 +213,8 @@ export const UsersPage = () => {
                     onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    {roles.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
+                    {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
                     ))}
                     <option value="admin">Администратор</option>
                   </select>

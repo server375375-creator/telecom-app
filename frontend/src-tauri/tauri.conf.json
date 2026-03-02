@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TelecomApp",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "identifier": "com.telecom.tracking",
   "build": {
     "frontendDist": "../dist",
@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' http://86.57.150.169:8000 http://localhost:8000 http://192.168.0.100:8000; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
