@@ -24,7 +24,24 @@ pub fn run() {
             match updater.check().await {
               Ok(Some(update)) => {
                 log::info!("Доступно обновление: {}", update.version);
-                // Можно показать диалог пользователю
+                
+                // Показываем диалог обновления
+                let handle_clone = handle.clone();
+                let version = update.version.clone();
+                
+                tauri::async_runtime::spawn(async move {
+                  // Скачиваем и устанавливаем обновление
+                  match update.download_and_install(|_, _| {}, || {}).await {
+                    Ok(_) => {
+                      log::info!("Обновление {} установлено", version);
+                      // Перезапускаем приложение
+                      handle_clone.restart();
+                    }
+                    Err(e) => {
+                      log::error!("Ошибка установки обновления: {}", e);
+                    }
+                  }
+                });
               }
               Ok(None) => {
                 log::info!("Приложение обновлено");
