@@ -31,3 +31,43 @@ class WarehouseOut(BaseModel):
     location: str | None = None
     description: str | None = None
     created_at: datetime
+
+# -------- EQUIPMENT --------
+
+class EquipmentCreate(BaseModel):
+    material_number: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    category: str | None = None
+    unit: str = Field(default="шт", max_length=20)
+
+class EquipmentOut(BaseModel):
+    id: int
+    material_number: str
+    name: str
+    description: str | None = None
+    category: str | None = None
+    unit: str
+    created_at: datetime
+
+# -------- SERIAL NUMBERS --------
+
+class SerialNumberCreate(BaseModel):
+    equipment_id: int
+    serial_number: str = Field(min_length=1, max_length=100)
+    warehouse_id: int | None = None
+    status: str = Field(default="available")
+    notes: str | None = None
+
+class SerialNumberOut(BaseModel):
+    id: int
+    equipment_id: int
+    serial_number: str
+    warehouse_id: int | None = None
+    status: str
+    notes: str | None = None
+    created_at: datetime
+    equipment: EquipmentOut | None = None
+
+    class Config:
+        from_attributes = True

@@ -1,9 +1,28 @@
+// Роли пользователей
+export type UserRole = 
+  | 'admin' 
+  | 'technician' 
+  | 'accountant'           // Бухгалтер
+  | 'finance_director'     // Директор по финансам
+  | 'tech_director'        // Директор по техническим вопросам
+  | 'economist';           // Экономист
+
 // Пользователь
 export interface User {
   id: number;
   username: string;
-  role: 'admin' | 'technician';
+  role: UserRole;
 }
+
+// Названия ролей на русском
+export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Администратор',
+  technician: 'Техник',
+  accountant: 'Бухгалтер',
+  finance_director: 'Директор по финансам',
+  tech_director: 'Директор по техническим вопросам',
+  economist: 'Экономист',
+};
 
 // Токен
 export interface TokenResponse {
@@ -44,6 +63,55 @@ export interface WarehouseCreate {
   location?: string;
   description?: string;
 }
+
+// Оборудование
+export interface Equipment {
+  id: number;
+  material_number: string;      // Номер материала
+  name: string;                 // Название оборудования
+  description: string | null;
+  category: string | null;      // Категория
+  unit: string;                 // Единица измерения
+  created_at: string;
+}
+
+export interface EquipmentCreate {
+  material_number: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+}
+
+// Серийный номер
+export interface SerialNumber {
+  id: number;
+  equipment_id: number;
+  serial_number: string;        // Серийный номер
+  warehouse_id: number | null;  // Склад
+  status: 'available' | 'in_use' | 'defective' | 'written_off';
+  notes: string | null;
+  created_at: string;
+  // Связанные данные
+  equipment?: Equipment;
+  warehouse?: Warehouse;
+}
+
+export interface SerialNumberCreate {
+  equipment_id: number;
+  serial_number: string;
+  warehouse_id?: number;
+  status?: 'available' | 'in_use' | 'defective' | 'written_off';
+  notes?: string;
+}
+
+// Статусы серийников
+export const SERIAL_STATUS_LABELS: Record<SerialNumber['status'], string> = {
+  available: 'Доступен',
+  in_use: 'В использовании',
+  defective: 'Неисправен',
+  written_off: 'Списан',
+};
 
 // API ошибка
 export interface ApiError {

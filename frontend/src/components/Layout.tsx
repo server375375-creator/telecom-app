@@ -1,11 +1,14 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ROLE_LABELS } from '../types';
 
 export const Layout = () => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const userRoleLabel = user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role : '';
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -15,11 +18,11 @@ export const Layout = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="text-xl font-bold text-indigo-600">
-              Server375
+              TelecomApp
             </Link>
 
             {/* Navigation */}
-            <nav className="flex space-x-4">
+            <nav className="flex space-x-2">
               <Link
                 to="/"
                 className={`px-3 py-2 rounded-md text-sm font-medium ${
@@ -36,14 +39,22 @@ export const Layout = () => {
               >
                 Склады
               </Link>
+              <Link
+                to="/equipment"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/equipment') ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Оборудование
+              </Link>
               {isAdmin && (
                 <Link
-                  to="/warehouses/new"
+                  to="/users"
                   className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive('/warehouses/new') ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:text-gray-900'
+                    isActive('/users') ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Добавить склад
+                  Пользователи
                 </Link>
               )}
             </nav>
@@ -51,7 +62,7 @@ export const Layout = () => {
             {/* User info */}
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                {user?.username} <span className="text-xs text-gray-400">({user?.role})</span>
+                {user?.username} <span className="text-xs text-gray-400">({userRoleLabel})</span>
               </span>
               <button
                 onClick={logout}

@@ -7,6 +7,8 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Warehouses } from './pages/Warehouses';
 import { WarehouseForm } from './pages/WarehouseForm';
+import { EquipmentPage } from './pages/Equipment';
+import { UsersPage } from './pages/Users';
 
 function App() {
   return (
@@ -33,6 +35,15 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <WarehouseForm />
+                </PrivateRoute>
+              }
+            />
+            <Route path="equipment" element={<EquipmentPage />} />
+            <Route
+              path="users"
+              element={
+                <PrivateRoute adminOnly>
+                  <UsersPage />
                 </PrivateRoute>
               }
             />
