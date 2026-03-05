@@ -1,5 +1,5 @@
 @import "tailwindcss";
 
 body {
-  @apply bg-gray-100 min-h-screen;
+  @apply bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen;
 }
