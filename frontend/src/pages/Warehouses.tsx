@@ -222,12 +222,6 @@ export const Warehouses = () => {
     }
   };
 
-  // Подсчёт общего количества на складе
-  const getWarehouseTotals = (warehouseId: number) => {
-    // Эта функция будет вызываться при наличии данных
-    return { serialCount: 0, stockCount: 0 };
-  };
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
