@@ -315,7 +315,7 @@ export const EquipmentPage = () => {
 
       {/* Модальное окно: Детали оборудования */}
       {selectedEquipment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-5xl w-full max-h-[85vh] overflow-auto m-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
@@ -419,7 +419,7 @@ export const EquipmentPage = () => {
 
       {/* Модальное окно: Добавить оборудование */}
       {showAddEquipment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
             <h2 className="text-xl font-bold mb-4">Новое оборудование</h2>
             <form onSubmit={handleCreateEquipment}>
@@ -504,7 +504,7 @@ export const EquipmentPage = () => {
 
       {/* Модальное окно: Добавить серийный номер */}
       {showAddSerial && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
             <h2 className="text-xl font-bold mb-4">Добавить серийный номер</h2>
             <form onSubmit={handleAddSerial}>
