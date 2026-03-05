@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse } from '../api/equipment';
+import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse, toggleUserActive } from '../api/equipment';
 import { listWarehouses } from '../api/warehouses';
 import { ROLE_LABELS } from '../types';
 import type { Warehouse } from '../types';
@@ -11,6 +11,7 @@ interface User {
   role: string;
   warehouse_id: number | null;
   warehouse_name: string | null;
+  is_active: boolean;
 }
 
 interface RoleOption {
@@ -84,6 +85,15 @@ export const UsersPage = () => {
     }
   };
 
+  const handleActiveChange = async (userId: number, isActive: boolean) => {
+    try {
+      await toggleUserActive(userId, isActive);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка изменения статуса');
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="p-6">
@@ -117,11 +127,12 @@ export const UsersPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя пользователя</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'bg-gray-100 opacity-60' : ''}`}>
                   <td className="px-4 py-3 whitespace-nowrap text-gray-500">{user.id}</td>
                   <td className="px-4 py-3 whitespace-nowrap font-medium">{user.username}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -149,6 +160,18 @@ export const UsersPage = () => {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <button
+                      onClick={() => handleActiveChange(user.id, !user.is_active)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        user.is_active 
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      }`}
+                    >
+                      {user.is_active ? 'Активен' : 'Неактивен'}
+                    </button>
                   </td>
                 </tr>
               ))}

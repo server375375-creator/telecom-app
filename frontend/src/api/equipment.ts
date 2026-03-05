@@ -94,6 +94,14 @@ export const assignUserWarehouse = async (userId: number, warehouseId: number | 
   return response.data;
 };
 
+// Изменить статус активности пользователя (admin only)
+export const toggleUserActive = async (userId: number, isActive: boolean) => {
+  const response = await api.patch(`/users/${userId}/active`, null, {
+    params: { is_active: isActive }
+  });
+  return response.data;
+};
+
 // ==================== INVENTORY ====================
 
 // Переместить оборудование по серийному номеру

@@ -12,6 +12,7 @@ class User(Base):
     password_hash = Column(String(256), nullable=False)
     role = Column(String(32), default="technician", nullable=False)
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=True)  # Склад монтажника
+    is_active = Column(Boolean, default=True, nullable=False)  # Активная учетная запись
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

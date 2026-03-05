@@ -14,6 +14,7 @@ export interface User {
   role: UserRole;
   warehouse_id?: number | null;
   warehouse_name?: string | null;
+  is_active?: boolean;
 }
 
 // Названия ролей на русском

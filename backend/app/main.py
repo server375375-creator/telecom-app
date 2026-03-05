@@ -216,6 +216,7 @@ def me(user=Depends(get_current_user)):
 
 @app.get("/users")
 def list_users(
+    active_only: bool = False,
     db: Session = Depends(get_db),
     admin=Depends(get_current_user)
 ):
@@ -223,18 +224,23 @@ def list_users(
     if admin["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    result = db.execute(text("""
-        SELECT u.id, u.username, u.role, u.warehouse_id, w.name as warehouse_name
+    query = """
+        SELECT u.id, u.username, u.role, u.warehouse_id, w.name as warehouse_name, u.is_active
         FROM users u
         LEFT JOIN warehouses w ON u.warehouse_id = w.id
-        ORDER BY u.id
-    """))
+    """
+    if active_only:
+        query += " WHERE u.is_active = TRUE"
+    query += " ORDER BY u.id"
+    
+    result = db.execute(text(query))
     return [{
         "id": row[0], 
         "username": row[1], 
         "role": row[2],
         "warehouse_id": row[3],
-        "warehouse_name": row[4]
+        "warehouse_name": row[4],
+        "is_active": row[5]
     } for row in result]
 
 
@@ -300,3 +306,26 @@ def update_user_role(
     
     db.commit()
     return {"id": result[0], "username": result[1], "role": result[2]}
+
+
+@app.patch("/users/{user_id}/active")
+def toggle_user_active(
+    user_id: int,
+    is_active: bool,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_user)
+):
+    """Изменить статус активности пользователя (только для админа)"""
+    if admin["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = db.execute(
+        text("UPDATE users SET is_active = :active WHERE id = :id RETURNING id, username, is_active"),
+        {"active": is_active, "id": user_id}
+    ).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.commit()
+    return {"id": result[0], "username": result[1], "is_active": result[2]}
