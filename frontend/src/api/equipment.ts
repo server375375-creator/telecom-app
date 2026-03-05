@@ -65,9 +65,9 @@ export const getRoles = async (): Promise<{ value: string; label: string }[]> =>
 };
 
 // Получить список пользователей (admin only)
-export const listUsers = async (): Promise<{ id: number; username: string; role: string; warehouse_id: number | null; warehouse_name: string | null }[]> => {
+export const listUsers = async (): Promise<{ id: number; username: string; role: string; warehouse_id: number | null; warehouse_name: string | null; is_active: boolean }[]> => {
   const response = await api.get('/users');
-  return response.data as { id: number; username: string; role: string; warehouse_id: number | null; warehouse_name: string | null }[];
+  return response.data as { id: number; username: string; role: string; warehouse_id: number | null; warehouse_name: string | null; is_active: boolean }[];
 };
 
 // Создать пользователя с ролью (admin only)
