@@ -102,6 +102,20 @@ export const toggleUserActive = async (userId: number, isActive: boolean) => {
   return response.data;
 };
 
+// Изменить пароль пользователя (admin only)
+export const changeUserPassword = async (userId: number, newPassword: string) => {
+  const response = await api.patch(`/users/${userId}/password`, null, {
+    params: { new_password: newPassword }
+  });
+  return response.data;
+};
+
+// Удалить пользователя (admin only)
+export const deleteUser = async (userId: number) => {
+  const response = await api.delete(`/users/${userId}`);
+  return response.data;
+};
+
 // ==================== INVENTORY ====================
 
 // Переместить оборудование по серийному номеру

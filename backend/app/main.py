@@ -329,3 +329,55 @@ def toggle_user_active(
     
     db.commit()
     return {"id": result[0], "username": result[1], "is_active": result[2]}
+
+
+@app.patch("/users/{user_id}/password")
+def change_user_password(
+    user_id: int,
+    new_password: str,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_user)
+):
+    """Изменить пароль пользователя (только для админа)"""
+    if admin["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    
+    result = db.execute(
+        text("UPDATE users SET password_hash = :ph WHERE id = :id RETURNING id, username"),
+        {"ph": hash_password(new_password), "id": user_id}
+    ).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.commit()
+    return {"id": result[0], "username": result[1], "message": "Password updated"}
+
+
+@app.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_user)
+):
+    """Удалить пользователя (только для админа)"""
+    if admin["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Нельзя удалить самого себя
+    if admin["id"] == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    
+    result = db.execute(
+        text("DELETE FROM users WHERE id = :id RETURNING id, username"),
+        {"id": user_id}
+    ).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.commit()
+    return {"id": result[0], "username": result[1], "deleted": True}

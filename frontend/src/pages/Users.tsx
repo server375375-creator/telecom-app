@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse, toggleUserActive } from '../api/equipment';
+import { listUsers, getRoles, createUserWithRole, updateUserRole, assignUserWarehouse, toggleUserActive, changeUserPassword, deleteUser } from '../api/equipment';
 import { listWarehouses } from '../api/warehouses';
 import { ROLE_LABELS } from '../types';
 import type { Warehouse } from '../types';
@@ -20,12 +20,15 @@ interface RoleOption {
 }
 
 export const UsersPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   
   const [newUser, setNewUser] = useState({
     username: '',
@@ -94,6 +97,33 @@ export const UsersPage = () => {
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (!editingUserId || !newPassword) return;
+    if (newPassword.length < 4) {
+      alert('Пароль должен быть минимум 4 символа');
+      return;
+    }
+    try {
+      await changeUserPassword(editingUserId, newPassword);
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setEditingUserId(null);
+      alert('Пароль успешно изменён');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка изменения пароля');
+    }
+  };
+
+  const handleDeleteUser = async (userId: number, username: string) => {
+    if (!confirm(`Удалить пользователя "${username}"?`)) return;
+    try {
+      await deleteUser(userId);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка удаления пользователя');
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="p-6">
@@ -119,7 +149,7 @@ export const UsersPage = () => {
       {loading ? (
         <div className="text-center py-8">Загрузка...</div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -128,6 +158,7 @@ export const UsersPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -172,6 +203,30 @@ export const UsersPage = () => {
                     >
                       {user.is_active ? 'Активен' : 'Неактивен'}
                     </button>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingUserId(user.id);
+                          setNewPassword('');
+                          setShowPasswordModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        title="Изменить пароль"
+                      >
+                        🔑
+                      </button>
+                      {currentUser?.id !== user.id && (
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.username)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                          title="Удалить"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -259,6 +314,48 @@ export const UsersPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно: Изменить пароль */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
+            <h2 className="text-xl font-bold mb-4">Изменить пароль</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Новый пароль *
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Минимум 4 символа"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setNewPassword('');
+                  setEditingUserId(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handlePasswordChange}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Сохранить
+              </button>
+            </div>
           </div>
         </div>
       )}
