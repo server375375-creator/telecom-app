@@ -8,7 +8,8 @@ import {
   searchBySerialNumber,
   updateSerialStatus 
 } from '../api/equipment';
-import type { Equipment, SerialNumber, SerialNumberCreate } from '../types';
+import { listWarehouses } from '../api/warehouses';
+import type { Equipment, SerialNumber, SerialNumberCreate, Warehouse } from '../types';
 import { SERIAL_STATUS_LABELS } from '../types';
 
 export const EquipmentPage = () => {
@@ -24,6 +25,7 @@ export const EquipmentPage = () => {
   const [showAddSerial, setShowAddSerial] = useState<number | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [serials, setSerials] = useState<SerialNumber[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   
   // Формы
   const [newEquipment, setNewEquipment] = useState({
@@ -36,6 +38,7 @@ export const EquipmentPage = () => {
   const [newSerial, setNewSerial] = useState<SerialNumberCreate>({
     equipment_id: 0,
     serial_number: '',
+    warehouse_id: undefined,
     status: 'available',
     notes: ''
   });
@@ -55,7 +58,18 @@ export const EquipmentPage = () => {
 
   useEffect(() => {
     loadEquipment();
+    loadWarehouses();
   }, [search]);
+
+  // Загрузка складов
+  const loadWarehouses = async () => {
+    try {
+      const data = await listWarehouses();
+      setWarehouses(data);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+    }
+  };
 
   // Поиск по серийному номеру
   const handleSerialSearch = async () => {
@@ -417,6 +431,23 @@ export const EquipmentPage = () => {
                     onChange={(e) => setNewSerial({...newSerial, serial_number: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Склад
+                  </label>
+                  <select
+                    value={newSerial.warehouse_id || ''}
+                    onChange={(e) => setNewSerial({...newSerial, warehouse_id: e.target.value ? Number(e.target.value) : undefined})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Не выбран</option>
+                    {warehouses.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} {w.is_central ? '(Центральный)' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
