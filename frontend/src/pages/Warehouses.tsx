@@ -7,7 +7,8 @@ import {
   writeOffStock, 
   getWarehouseStock,
   listTransactions,
-  listEquipment
+  listEquipment,
+  bulkTransferEquipment
 } from '../api/equipment';
 import type { Equipment } from '../types';
 import type { Warehouse } from '../types';
@@ -49,6 +50,11 @@ interface SerialItem {
   };
 }
 
+interface WarehouseStockData {
+  serial_numbers: SerialItem[];
+  stock: StockItem[];
+}
+
 export const Warehouses = () => {
   const { isAdmin } = useAuth();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -59,10 +65,11 @@ export const Warehouses = () => {
   // Модальные окна
   const [showCreateWarehouse, setShowCreateWarehouse] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showBulkTransfer, setShowBulkTransfer] = useState(false);
   const [showAddStock, setShowAddStock] = useState(false);
   const [showWriteOff, setShowWriteOff] = useState(false);
   const [showStock, setShowStock] = useState<number | null>(null);
-  const [stockData, setStockData] = useState<{serial_numbers: SerialItem[]; stock: StockItem[]} | null>(null);
+  const [stockData, setStockData] = useState<WarehouseStockData | null>(null);
   
   // Формы
   const [newWarehouse, setNewWarehouse] = useState({
@@ -73,6 +80,11 @@ export const Warehouses = () => {
   });
   const [transferForm, setTransferForm] = useState({
     serial_number: '',
+    to_warehouse_id: 0,
+    notes: ''
+  });
+  const [bulkTransferForm, setBulkTransferForm] = useState({
+    serial_numbers_text: '',
     to_warehouse_id: 0,
     notes: ''
   });
@@ -136,6 +148,37 @@ export const Warehouses = () => {
     }
   };
 
+  const handleBulkTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Парсим серийные номера из текста (каждый на новой строке или через запятую)
+      const serialNumbers = bulkTransferForm.serial_numbers_text
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      
+      if (serialNumbers.length === 0) {
+        alert('Введите хотя бы один серийный номер');
+        return;
+      }
+      
+      const result = await bulkTransferEquipment(serialNumbers, bulkTransferForm.to_warehouse_id, bulkTransferForm.notes);
+      
+      if (result.errors && result.errors.length > 0) {
+        const errorMessages = result.errors.map((e: any) => `${e.serial_number}: ${e.error}`).join('\n');
+        alert(`Перемещено: ${result.transferred}\nОшибки:\n${errorMessages}`);
+      } else {
+        alert(`Успешно перемещено ${result.transferred} единиц оборудования`);
+      }
+      
+      setBulkTransferForm({ serial_numbers_text: '', to_warehouse_id: 0, notes: '' });
+      setShowBulkTransfer(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка массового перемещения');
+    }
+  };
+
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -179,12 +222,24 @@ export const Warehouses = () => {
     }
   };
 
+  // Подсчёт общего количества на складе
+  const getWarehouseTotals = (warehouseId: number) => {
+    // Эта функция будет вызываться при наличии данных
+    return { serialCount: 0, stockCount: 0 };
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Склады</h1>
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setShowBulkTransfer(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+            >
+              Массовое перемещение
+            </button>
             <button
               onClick={() => setShowTransfer(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
@@ -222,7 +277,7 @@ export const Warehouses = () => {
             {warehouses.map((wh) => (
               <div 
                 key={wh.id} 
-                className={`bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md ${wh.is_central ? 'border-2 border-indigo-500' : ''}`}
+                className={`bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow ${wh.is_central ? 'border-2 border-indigo-500' : ''}`}
                 onClick={() => handleShowStock(wh.id)}
               >
                 <div className="flex justify-between items-start">
@@ -311,13 +366,27 @@ export const Warehouses = () => {
               </button>
             </div>
 
+            {/* Общая статистика */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex gap-6">
+                <div>
+                  <span className="text-gray-500 text-sm">Серийное оборудование:</span>
+                  <span className="ml-2 font-semibold">{stockData.serial_numbers.length} ед.</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-sm">Материалов на складе:</span>
+                  <span className="ml-2 font-semibold">{stockData.stock.reduce((sum, s) => sum + s.quantity, 0)} ед.</span>
+                </div>
+              </div>
+            </div>
+
             {/* Серийные номера */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-2">Серийное оборудование</h3>
+              <h3 className="font-semibold mb-2">Серийное оборудование ({stockData.serial_numbers.length} ед.)</h3>
               {stockData.serial_numbers.length === 0 ? (
                 <p className="text-gray-500 text-sm">Нет серийного оборудования</p>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Серийный номер</th>
@@ -352,12 +421,12 @@ export const Warehouses = () => {
               {stockData.stock.length === 0 ? (
                 <p className="text-gray-500 text-sm">Нет материалов</p>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Материал</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Номер материала</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Количество</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ед. изм.</th>
                     </tr>
                   </thead>
@@ -366,7 +435,7 @@ export const Warehouses = () => {
                       <tr key={s.id}>
                         <td className="px-3 py-2 text-sm">{s.equipment.name}</td>
                         <td className="px-3 py-2 font-mono text-sm">{s.equipment.material_number}</td>
-                        <td className="px-3 py-2 text-sm font-medium">{s.quantity}</td>
+                        <td className="px-3 py-2 text-center font-medium">{s.quantity}</td>
                         <td className="px-3 py-2 text-sm">{s.equipment.unit}</td>
                       </tr>
                     ))}
@@ -446,7 +515,7 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Переместить */}
+      {/* Модальное окно: Переместить (один) */}
       {showTransfer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
@@ -503,6 +572,73 @@ export const Warehouses = () => {
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 >
                   Переместить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно: Массовое перемещение */}
+      {showBulkTransfer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full m-4">
+            <h2 className="text-xl font-bold mb-4">Массовое перемещение оборудования</h2>
+            <form onSubmit={handleBulkTransfer}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Серийные номера * 
+                    <span className="text-gray-400 font-normal">(по одному на строку или через запятую)</span>
+                  </label>
+                  <textarea
+                    required
+                    value={bulkTransferForm.serial_numbers_text}
+                    onChange={(e) => setBulkTransferForm({...bulkTransferForm, serial_numbers_text: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                    rows={8}
+                    placeholder="SN001&#10;SN002&#10;SN003&#10;или SN001, SN002, SN003"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">На склад *</label>
+                  <select
+                    required
+                    value={bulkTransferForm.to_warehouse_id}
+                    onChange={(e) => setBulkTransferForm({...bulkTransferForm, to_warehouse_id: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Выберите склад</option>
+                    {warehouses.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} {w.is_central ? '(Центральный)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
+                  <input
+                    type="text"
+                    value={bulkTransferForm.notes}
+                    onChange={(e) => setBulkTransferForm({...bulkTransferForm, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkTransfer(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  Переместить все
                 </button>
               </div>
             </form>

@@ -262,3 +262,200 @@ def update_serial_status(
     
     db.commit()
     return {"status": "updated", "serial": dict(result._mapping)}
+
+
+# ==================== EQUIPMENT WITH COUNTS ====================
+
+@router.get("/with-counts/list")
+def list_equipment_with_counts(
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """Получить список оборудования с общим количеством по каждому типу"""
+    query = """
+        SELECT 
+            e.id, e.material_number, e.name, e.description, e.category, e.unit, e.created_at,
+            COUNT(sn.id) as total_serial_count,
+            COUNT(sn.id) FILTER (WHERE sn.status = 'available') as available_count,
+            COUNT(sn.id) FILTER (WHERE sn.status = 'in_use') as in_use_count,
+            COUNT(sn.id) FILTER (WHERE sn.status = 'defective') as defective_count,
+            COALESCE(ws.total_stock, 0) as stock_quantity
+        FROM equipment e
+        LEFT JOIN serial_numbers sn ON sn.equipment_id = e.id AND sn.status != 'written_off'
+        LEFT JOIN (
+            SELECT equipment_id, SUM(quantity) as total_stock 
+            FROM warehouse_stock 
+            GROUP BY equipment_id
+        ) ws ON ws.equipment_id = e.id
+    """
+    params = {}
+    
+    if search:
+        query += " WHERE e.material_number ILIKE :search OR e.name ILIKE :search"
+        params["search"] = f"%{search}%"
+    
+    query += " GROUP BY e.id, ws.total_stock ORDER BY e.created_at DESC"
+    
+    result = db.execute(text(query), params)
+    
+    items = []
+    for row in result:
+        d = dict(row._mapping)
+        items.append({
+            "id": d["id"],
+            "material_number": d["material_number"],
+            "name": d["name"],
+            "description": d["description"],
+            "category": d["category"],
+            "unit": d["unit"],
+            "created_at": d["created_at"],
+            "total_count": (d["total_serial_count"] or 0) + (d["stock_quantity"] or 0),
+            "serial_count": d["total_serial_count"] or 0,
+            "available_count": d["available_count"] or 0,
+            "in_use_count": d["in_use_count"] or 0,
+            "defective_count": d["defective_count"] or 0,
+            "stock_quantity": d["stock_quantity"] or 0
+        })
+    
+    return items
+
+
+@router.get("/{equipment_id}/warehouse-distribution")
+def get_equipment_warehouse_distribution(
+    equipment_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """Получить распределение оборудования по складам"""
+    # Серийные номера по складам
+    serials_by_warehouse = db.execute(text("""
+        SELECT w.id as warehouse_id, w.name as warehouse_name, w.is_central,
+               COUNT(sn.id) as serial_count,
+               COUNT(sn.id) FILTER (WHERE sn.status = 'available') as available_count,
+               COUNT(sn.id) FILTER (WHERE sn.status = 'in_use') as in_use_count,
+               COUNT(sn.id) FILTER (WHERE sn.status = 'defective') as defective_count
+        FROM warehouses w
+        LEFT JOIN serial_numbers sn ON sn.warehouse_id = w.id 
+            AND sn.equipment_id = :eid AND sn.status != 'written_off'
+        GROUP BY w.id, w.name, w.is_central
+        HAVING COUNT(sn.id) > 0
+        ORDER BY w.is_central DESC, w.name
+    """), {"eid": equipment_id})
+    
+    # Остатки по складам (несерийное)
+    stock_by_warehouse = db.execute(text("""
+        SELECT w.id as warehouse_id, w.name as warehouse_name, w.is_central,
+               ws.quantity
+        FROM warehouse_stock ws
+        JOIN warehouses w ON w.id = ws.warehouse_id
+        WHERE ws.equipment_id = :eid AND ws.quantity > 0
+        ORDER BY w.is_central DESC, w.name
+    """), {"eid": equipment_id})
+    
+    distribution = {}
+    
+    # Добавляем серийные
+    for row in serials_by_warehouse:
+        d = dict(row._mapping)
+        wid = d["warehouse_id"]
+        distribution[wid] = {
+            "warehouse_id": wid,
+            "warehouse_name": d["warehouse_name"],
+            "is_central": d["is_central"],
+            "serial_count": d["serial_count"],
+            "available_count": d["available_count"],
+            "in_use_count": d["in_use_count"],
+            "defective_count": d["defective_count"],
+            "stock_quantity": 0
+        }
+    
+    # Добавляем остатки
+    for row in stock_by_warehouse:
+        d = dict(row._mapping)
+        wid = d["warehouse_id"]
+        if wid in distribution:
+            distribution[wid]["stock_quantity"] = d["quantity"]
+        else:
+            distribution[wid] = {
+                "warehouse_id": wid,
+                "warehouse_name": d["warehouse_name"],
+                "is_central": d["is_central"],
+                "serial_count": 0,
+                "available_count": 0,
+                "in_use_count": 0,
+                "defective_count": 0,
+                "stock_quantity": d["quantity"]
+            }
+    
+    return list(distribution.values())
+
+
+# ==================== SERIAL SEARCH IMPROVED ====================
+
+@router.get("/serials/search-advanced")
+def search_serials_advanced(
+    serial: Optional[str] = None,
+    equipment_id: Optional[int] = None,
+    warehouse_id: Optional[int] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """Расширенный поиск серийных номеров"""
+    query = """
+        SELECT sn.*, e.material_number, e.name as equip_name, e.description as equip_desc,
+               e.category as equip_cat, e.unit as equip_unit, e.created_at as equip_created,
+               w.name as warehouse_name
+        FROM serial_numbers sn
+        JOIN equipment e ON sn.equipment_id = e.id
+        LEFT JOIN warehouses w ON sn.warehouse_id = w.id
+        WHERE 1=1
+    """
+    params = {"limit": limit}
+    
+    if serial:
+        query += " AND sn.serial_number ILIKE :serial"
+        params["serial"] = f"%{serial}%"
+    
+    if equipment_id:
+        query += " AND sn.equipment_id = :eid"
+        params["eid"] = equipment_id
+    
+    if warehouse_id:
+        query += " AND sn.warehouse_id = :wid"
+        params["wid"] = warehouse_id
+    
+    if status:
+        query += " AND sn.status = :status"
+        params["status"] = status
+    
+    query += " ORDER BY sn.created_at DESC LIMIT :limit"
+    
+    result = db.execute(text(query), params)
+    
+    serials = []
+    for row in result:
+        d = dict(row._mapping)
+        serials.append({
+            "id": d["id"],
+            "equipment_id": d["equipment_id"],
+            "serial_number": d["serial_number"],
+            "warehouse_id": d["warehouse_id"],
+            "warehouse_name": d["warehouse_name"],
+            "status": d["status"],
+            "notes": d["notes"],
+            "created_at": d["created_at"],
+            "equipment": {
+                "id": d["equipment_id"],
+                "material_number": d["material_number"],
+                "name": d["equip_name"],
+                "description": d["equip_desc"],
+                "category": d["equip_cat"],
+                "unit": d["equip_unit"],
+                "created_at": d["equip_created"]
+            }
+        })
+    
+    return serials

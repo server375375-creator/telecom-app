@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Optional
 
+from pydantic import BaseModel
 from .db import get_db
 from .schemas import TransferRequest, AddStockRequest, WriteOffRequest, TransactionOut
 from .auth import get_current_user
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
+
+
+class BulkTransferRequest(BaseModel):
+    serial_numbers: List[str]
+    to_warehouse_id: int
+    notes: Optional[str] = None
 
 
 @router.post("/transfer")
@@ -314,6 +321,92 @@ def get_central_stock(
     
     # Получаем остатки
     return get_warehouse_stock_internal(central[0], db)
+
+
+@router.post("/bulk-transfer")
+def bulk_transfer_equipment(
+    data: BulkTransferRequest,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """
+    Массовое перемещение оборудования по списку серийных номеров.
+    Только админ может перемещать оборудование.
+    """
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can transfer equipment")
+    
+    # Проверяем целевой склад
+    to_warehouse = db.execute(
+        text("SELECT id FROM warehouses WHERE id = :id"),
+        {"id": data.to_warehouse_id}
+    ).first()
+    
+    if not to_warehouse:
+        raise HTTPException(status_code=404, detail="Target warehouse not found")
+    
+    results = []
+    errors = []
+    
+    for serial_number in data.serial_numbers:
+        serial_number = serial_number.strip()
+        if not serial_number:
+            continue
+            
+        # Находим серийный номер
+        serial = db.execute(
+            text("SELECT id, equipment_id, warehouse_id, status FROM serial_numbers WHERE serial_number = :sn"),
+            {"sn": serial_number}
+        ).first()
+        
+        if not serial:
+            errors.append({"serial_number": serial_number, "error": "Serial number not found"})
+            continue
+        
+        serial_id, equipment_id, from_warehouse_id, status = serial
+        
+        if status == "written_off":
+            errors.append({"serial_number": serial_number, "error": "Cannot transfer written off equipment"})
+            continue
+        
+        # Создаём запись о перемещении
+        db.execute(
+            text("""
+                INSERT INTO inventory_transactions 
+                (equipment_id, serial_number_id, from_warehouse_id, to_warehouse_id, quantity, transaction_type, notes, created_by)
+                VALUES (:eid, :snid, :from_wh, :to_wh, 1, 'transfer', :notes, :created_by)
+            """),
+            {
+                "eid": equipment_id,
+                "snid": serial_id,
+                "from_wh": from_warehouse_id,
+                "to_wh": data.to_warehouse_id,
+                "notes": data.notes,
+                "created_by": user["id"]
+            }
+        )
+        
+        # Обновляем склад для серийного номера
+        db.execute(
+            text("UPDATE serial_numbers SET warehouse_id = :wid WHERE id = :id"),
+            {"wid": data.to_warehouse_id, "id": serial_id}
+        )
+        
+        results.append({
+            "serial_number": serial_number,
+            "from_warehouse_id": from_warehouse_id,
+            "to_warehouse_id": data.to_warehouse_id
+        })
+    
+    db.commit()
+    
+    return {
+        "status": "completed",
+        "transferred": len(results),
+        "failed": len(errors),
+        "results": results,
+        "errors": errors
+    }
 
 
 def get_warehouse_stock_internal(warehouse_id: int, db: Session):

@@ -1,20 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  listEquipment, 
   createEquipment, 
   listSerialNumbers, 
   addSerialNumber,
   searchBySerialNumber,
-  updateSerialStatus 
+  updateSerialStatus,
+  listEquipmentWithCounts,
+  getEquipmentWarehouseDistribution
 } from '../api/equipment';
 import { listWarehouses } from '../api/warehouses';
 import type { Equipment, SerialNumber, SerialNumberCreate, Warehouse } from '../types';
 import { SERIAL_STATUS_LABELS } from '../types';
 
+interface EquipmentWithCounts extends Equipment {
+  total_count: number;
+  serial_count: number;
+  available_count: number;
+  in_use_count: number;
+  defective_count: number;
+  stock_quantity: number;
+}
+
+interface WarehouseDistribution {
+  warehouse_id: number;
+  warehouse_name: string;
+  is_central: boolean;
+  serial_count: number;
+  available_count: number;
+  in_use_count: number;
+  defective_count: number;
+  stock_quantity: number;
+}
+
 export const EquipmentPage = () => {
   const { isAdmin } = useAuth();
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [equipment, setEquipment] = useState<EquipmentWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [serialSearch, setSerialSearch] = useState('');
@@ -23,9 +44,10 @@ export const EquipmentPage = () => {
   // Модальные окна
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const [showAddSerial, setShowAddSerial] = useState<number | null>(null);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentWithCounts | null>(null);
   const [serials, setSerials] = useState<SerialNumber[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseDistribution, setWarehouseDistribution] = useState<WarehouseDistribution[]>([]);
   
   // Формы
   const [newEquipment, setNewEquipment] = useState({
@@ -43,11 +65,11 @@ export const EquipmentPage = () => {
     notes: ''
   });
 
-  // Загрузка оборудования
+  // Загрузка оборудования с количеством
   const loadEquipment = async () => {
     setLoading(true);
     try {
-      const data = await listEquipment(search);
+      const data = await listEquipmentWithCounts(search);
       setEquipment(data);
     } catch (err) {
       console.error('Failed to load equipment:', err);
@@ -106,10 +128,21 @@ export const EquipmentPage = () => {
     }
   };
 
-  // Показать серийные номера
-  const handleShowSerials = (eq: Equipment) => {
+  // Загрузка распределения по складам
+  const loadWarehouseDistribution = async (equipmentId: number) => {
+    try {
+      const data = await getEquipmentWarehouseDistribution(equipmentId);
+      setWarehouseDistribution(data);
+    } catch (err) {
+      console.error('Failed to load warehouse distribution:', err);
+    }
+  };
+
+  // Показать детали оборудования
+  const handleShowDetails = (eq: EquipmentWithCounts) => {
     setSelectedEquipment(eq);
     loadSerials(eq.id);
+    loadWarehouseDistribution(eq.id);
   };
 
   // Добавление серийного номера
@@ -121,6 +154,7 @@ export const EquipmentPage = () => {
       setNewSerial({ equipment_id: 0, serial_number: '', status: 'available', notes: '' });
       setShowAddSerial(null);
       loadSerials(showAddSerial);
+      loadEquipment(); // Обновляем список с количеством
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Ошибка добавления');
     }
@@ -132,6 +166,8 @@ export const EquipmentPage = () => {
       await updateSerialStatus(serialId, status);
       if (selectedEquipment) {
         loadSerials(selectedEquipment.id);
+        loadWarehouseDistribution(selectedEquipment.id);
+        loadEquipment();
       }
     } catch (err) {
       alert('Ошибка обновления статуса');
@@ -224,30 +260,46 @@ export const EquipmentPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Номер материала</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Категория</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ед. изм.</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Всего</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Доступно</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">В работе</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Брак</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {equipment.map((eq) => (
-                <tr key={eq.id} className="hover:bg-gray-50">
+                <tr key={eq.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleShowDetails(eq)}>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{eq.material_number}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{eq.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{eq.category || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{eq.unit}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleShowSerials(eq)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      Серийники
-                    </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-semibold">
+                      {eq.total_count}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                      {eq.available_count}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {eq.in_use_count}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                      {eq.defective_count}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     {isAdmin && (
                       <button
                         onClick={() => setShowAddSerial(eq.id)}
                         className="text-green-600 hover:text-green-900"
                       >
-                        + Добавить серийник
+                        + Серийник
                       </button>
                     )}
                   </td>
@@ -261,69 +313,106 @@ export const EquipmentPage = () => {
         </div>
       )}
 
-      {/* Модальное окно: Серийные номера */}
+      {/* Модальное окно: Детали оборудования */}
       {selectedEquipment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto m-4">
+          <div className="bg-white rounded-lg p-6 max-w-5xl w-full max-h-[85vh] overflow-auto m-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                Серийные номера: {selectedEquipment.name}
+                {selectedEquipment.name}
               </h2>
               <button
                 onClick={() => setSelectedEquipment(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ✕
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              Номер материала: {selectedEquipment.material_number}
+              Номер материала: {selectedEquipment.material_number} | 
+              Всего: <span className="font-semibold">{selectedEquipment.total_count}</span> | 
+              Доступно: <span className="text-green-600 font-semibold">{selectedEquipment.available_count}</span> |
+              В работе: <span className="text-blue-600 font-semibold">{selectedEquipment.in_use_count}</span> |
+              Брак: <span className="text-red-600 font-semibold">{selectedEquipment.defective_count}</span>
             </p>
-            
-            {serials.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Серийные номера не добавлены</p>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Серийный номер</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Примечания</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {serials.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-2 font-mono text-sm">{s.serial_number}</td>
-                      <td className="px-4 py-2">
-                        <select
-                          value={s.status}
-                          onChange={(e) => handleStatusChange(s.id, e.target.value)}
-                          className="border rounded px-2 py-1 text-sm"
-                          disabled={!isAdmin}
-                        >
-                          {Object.entries(SERIAL_STATUS_LABELS).map(([value, label]) => (
-                            <option key={value} value={value}>{label}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-2 text-gray-500 text-sm">{s.notes || '-'}</td>
-                      <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          s.status === 'available' ? 'bg-green-100 text-green-800' :
-                          s.status === 'in_use' ? 'bg-blue-100 text-blue-800' :
-                          s.status === 'defective' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {SERIAL_STATUS_LABELS[s.status]}
-                        </span>
-                      </td>
+
+            {/* Распределение по складам */}
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2 text-lg">Распределение по складам</h3>
+              {warehouseDistribution.length === 0 ? (
+                <p className="text-gray-500 text-sm">Нет данных о распределении</p>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200 border">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Всего серийников</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Доступно</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">В работе</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Брак</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">На складе (шт)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {warehouseDistribution.map((wd) => (
+                      <tr key={wd.warehouse_id} className={wd.is_central ? 'bg-indigo-50' : ''}>
+                        <td className="px-4 py-2">
+                          {wd.warehouse_name}
+                          {wd.is_central && <span className="ml-2 text-xs bg-indigo-200 px-1 rounded">Центральный</span>}
+                        </td>
+                        <td className="px-4 py-2 text-center font-medium">{wd.serial_count}</td>
+                        <td className="px-4 py-2 text-center text-green-600">{wd.available_count}</td>
+                        <td className="px-4 py-2 text-center text-blue-600">{wd.in_use_count}</td>
+                        <td className="px-4 py-2 text-center text-red-600">{wd.defective_count}</td>
+                        <td className="px-4 py-2 text-center font-medium">{wd.stock_quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            
+            {/* Серийные номера */}
+            <div>
+              <h3 className="font-semibold mb-2 text-lg">Серийные номера</h3>
+              {serials.length === 0 ? (
+                <p className="text-gray-500 text-sm">Серийные номера не добавлены</p>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200 border">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Серийный номер</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Примечания</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {serials.map((s) => (
+                      <tr key={s.id}>
+                        <td className="px-4 py-2 font-mono text-sm">{s.serial_number}</td>
+                        <td className="px-4 py-2 text-sm">
+                          {warehouses.find(w => w.id === s.warehouse_id)?.name || '-'}
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={s.status}
+                            onChange={(e) => handleStatusChange(s.id, e.target.value)}
+                            className="border rounded px-2 py-1 text-sm"
+                            disabled={!isAdmin}
+                          >
+                            {Object.entries(SERIAL_STATUS_LABELS).map(([value, label]) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2 text-gray-500 text-sm">{s.notes || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -170,3 +170,44 @@ export const getWarehouseStock = async (warehouseId: number) => {
   const response = await api.get(`/warehouses/${warehouseId}/stock`);
   return response.data;
 };
+
+// ==================== EQUIPMENT WITH COUNTS ====================
+
+// Получить список оборудования с количеством
+export const listEquipmentWithCounts = async (search?: string) => {
+  const params = search ? { search } : {};
+  const response = await api.get('/equipment/with-counts/list', { params });
+  return response.data;
+};
+
+// Получить распределение оборудования по складам
+export const getEquipmentWarehouseDistribution = async (equipmentId: number) => {
+  const response = await api.get(`/equipment/${equipmentId}/warehouse-distribution`);
+  return response.data;
+};
+
+// ==================== ADVANCED SERIAL SEARCH ====================
+
+// Расширенный поиск серийных номеров
+export const searchSerialsAdvanced = async (params: {
+  serial?: string;
+  equipment_id?: number;
+  warehouse_id?: number;
+  status?: string;
+  limit?: number;
+}) => {
+  const response = await api.get('/equipment/serials/search-advanced', { params });
+  return response.data;
+};
+
+// ==================== BULK TRANSFER ====================
+
+// Массовое перемещение по списку серийных номеров
+export const bulkTransferEquipment = async (serialNumbers: string[], toWarehouseId: number, notes?: string) => {
+  const response = await api.post('/inventory/bulk-transfer', {
+    serial_numbers: serialNumbers,
+    to_warehouse_id: toWarehouseId,
+    notes
+  });
+  return response.data;
+};
