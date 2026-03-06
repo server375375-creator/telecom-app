@@ -1,5 +1,103 @@
 @import "tailwindcss";
 
+/* Основная цветовая палитра на основе reference.jpg */
+:root {
+  --bg-primary: #F4F4FC;
+  --bg-secondary: #DFE1EE;
+  --bg-tertiary: #EBEBF5;
+  --text-primary: #14121F;
+  --text-secondary: #4A4858;
+  --accent-primary: #6366F1;
+  --accent-secondary: #8B5CF6;
+  --white: #FFFFFF;
+}
+
 body {
-  @apply bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen;
+  @apply bg-[#F4F4FC] min-h-screen text-[#14121F];
+}
+
+/* Кастомные стили для карточек в стиле reference */
+.card-reference {
+  @apply bg-white rounded-2xl shadow-lg border border-[#EBEBF5] p-6;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+}
+
+/* Кнопки в стиле reference */
+.btn-primary {
+  @apply bg-[#14121F] text-white px-6 py-3 rounded-xl font-medium transition-all duration-200;
+  box-shadow: 0 4px 14px rgba(20, 18, 31, 0.25);
+}
+
+.btn-primary:hover {
+  @apply bg-[#2A2838];
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(20, 18, 31, 0.3);
+}
+
+.btn-secondary {
+  @apply bg-[#F4F4FC] text-[#14121F] px-6 py-3 rounded-xl font-medium border border-[#DFE1EE] transition-all duration-200;
+}
+
+.btn-secondary:hover {
+  @apply bg-[#EBEBF5] border-[#C4C6D8];
+}
+
+/* Стили для навигации */
+.nav-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-[#4A4858];
+}
+
+.nav-item:hover {
+  @apply bg-[#EBEBF5] text-[#14121F];
+}
+
+.nav-item.active {
+  @apply bg-[#14121F] text-white;
+}
+
+/* Стили для таблиц */
+.table-reference {
+  @apply w-full bg-white rounded-2xl overflow-hidden;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.06);
+}
+
+.table-reference th {
+  @apply bg-[#F4F4FC] px-6 py-4 text-left text-sm font-semibold text-[#4A4858] uppercase tracking-wider;
+}
+
+.table-reference td {
+  @apply px-6 py-4 border-t border-[#EBEBF5];
+}
+
+.table-reference tr:hover {
+  @apply bg-[#F8F8FD];
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Скроллбар */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F4FC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #DFE1EE;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C4C6D8;
 }

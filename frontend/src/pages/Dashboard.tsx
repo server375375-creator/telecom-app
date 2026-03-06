@@ -4,125 +4,153 @@ export const Dashboard = () => {
   const { user, isAdmin } = useAuth();
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Приветствие */}
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200">
-            <span className="text-3xl">👋</span>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Добро пожаловать, {user?.username}!
-            </h1>
-            <p className="text-slate-500 mt-1">Server375 — система управления складами</p>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-[#14121F] mb-2">
+          Добро пожаловать, {user?.username}!
+        </h1>
+        <p className="text-[#4A4858]">Server375 — система управления складами</p>
       </div>
 
-      {/* Статистика */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Роль */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100 hover:shadow-2xl transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Ваша роль</p>
-              <p className={`text-2xl font-bold ${isAdmin ? 'bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent' : 'text-emerald-600'}`}>
-                {user?.role === 'admin' ? '👑 Администратор' : '🔧 Техник'}
-              </p>
+        {/* Role Card */}
+        <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-[#14121F] flex items-center justify-center">
+              <span className="text-2xl">👤</span>
             </div>
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isAdmin ? 'bg-gradient-to-br from-purple-100 to-pink-100' : 'bg-gradient-to-br from-emerald-100 to-green-100'}`}>
-              <span className="text-2xl">{isAdmin ? '👑' : '🔧'}</span>
-            </div>
+            <span className="text-sm font-medium text-[#4A4858]">Ваша роль</span>
           </div>
+          <p className="text-2xl font-bold text-[#14121F]">
+            {user?.role === 'admin' ? 'Администратор' : 'Техник'}
+          </p>
         </div>
 
-        {/* Права */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100 hover:shadow-2xl transition-all duration-300">
-          <p className="text-sm font-medium text-slate-500 mb-3">Права доступа</p>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2 text-slate-700">
-              <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm">✓</span>
+        {/* Permissions Card */}
+        <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+              <span className="text-2xl">🔐</span>
+            </div>
+            <span className="text-sm font-medium text-[#4A4858]">Права доступа</span>
+          </div>
+          <ul className="space-y-2 text-[#4A4858]">
+            <li className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EBEBF5] flex items-center justify-center text-xs">✓</span>
               Просмотр складов
             </li>
             {isAdmin && (
-              <li className="flex items-center gap-2 text-slate-700">
-                <span className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-sm">✓</span>
-                Создание складов
-              </li>
-            )}
-            {isAdmin && (
-              <li className="flex items-center gap-2 text-slate-700">
-                <span className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 text-sm">✓</span>
+              <li className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#14121F] flex items-center justify-center text-xs text-white">✓</span>
                 Администрирование
               </li>
             )}
           </ul>
         </div>
 
-        {/* Быстрые действия */}
-        <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-xl shadow-purple-200/50 p-6 text-white">
-          <p className="text-sm font-medium text-white/80 mb-3">Быстрые действия</p>
+        {/* Quick Actions Card */}
+        <div className="bg-[#14121F] rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+              <span className="text-2xl">⚡</span>
+            </div>
+            <span className="text-sm font-medium text-white/60">Быстрые действия</span>
+          </div>
           <div className="space-y-2">
             <a
               href="/warehouses"
-              className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition-all font-medium"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             >
-              <span>📦</span> Перейти к складам
+              <span>🏭</span>
+              <span>Перейти к складам</span>
             </a>
             {isAdmin && (
               <a
-                href="/warehouses/new"
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition-all font-medium"
-              >
-                <span>➕</span> Добавить склад
-              </a>
-            )}
-            {isAdmin && (
-              <a
                 href="/users"
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition-all font-medium"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
               >
-                <span>👥</span> Управление пользователями
+                <span>👥</span>
+                <span>Управление пользователями</span>
               </a>
             )}
           </div>
         </div>
       </div>
 
-      {/* Информация о системе */}
-      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-            <span className="text-xl">ℹ️</span>
+      {/* Main Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Navigation Cards */}
+        <a href="/warehouses" className="group">
+          <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm hover:border-[#14121F] hover:shadow-md transition-all">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-xl bg-[#F4F4FC] border border-[#DFE1EE] flex items-center justify-center group-hover:bg-[#14121F] group-hover:border-[#14121F] transition-colors">
+                <span className="text-3xl group-hover:text-white">🏭</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#14121F] group-hover:text-[#6366F1] transition-colors">Склады</h3>
+                <p className="text-[#4A4858] text-sm">Управление складами</p>
+              </div>
+            </div>
+            <p className="text-[#4A4858]">
+              Создание, редактирование и просмотр складов. Управление оборудованием и материалами.
+            </p>
           </div>
-          <h3 className="text-lg font-bold text-slate-800">О системе</h3>
-        </div>
-        <p className="text-slate-600 leading-relaxed">
-          <strong className="text-slate-800">Server375</strong> — современная система управления складами телекоммуникационного оборудования. 
-          Используйте меню навигации для доступа к функциям системы: управление складами, оборудованием, материалами и пользователями.
-        </p>
-        
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <a href="/warehouses" className="flex flex-col items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-            <span className="text-3xl mb-2">🏭</span>
-            <span className="text-sm font-medium text-slate-700">Склады</span>
+        </a>
+
+        <a href="/equipment" className="group">
+          <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm hover:border-[#14121F] hover:shadow-md transition-all">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-xl bg-[#F4F4FC] border border-[#DFE1EE] flex items-center justify-center group-hover:bg-[#14121F] group-hover:border-[#14121F] transition-colors">
+                <span className="text-3xl group-hover:text-white">📡</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#14121F] group-hover:text-[#6366F1] transition-colors">Оборудование</h3>
+                <p className="text-[#4A4858] text-sm">Учёт с серийными номерами</p>
+              </div>
+            </div>
+            <p className="text-[#4A4858]">
+              Оборудование с отслеживанием по серийным номерам, статусами и перемещениями.
+            </p>
+          </div>
+        </a>
+
+        <a href="/materials" className="group">
+          <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm hover:border-[#14121F] hover:shadow-md transition-all">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-xl bg-[#F4F4FC] border border-[#DFE1EE] flex items-center justify-center group-hover:bg-[#14121F] group-hover:border-[#14121F] transition-colors">
+                <span className="text-3xl group-hover:text-white">📦</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#14121F] group-hover:text-[#6366F1] transition-colors">Материалы</h3>
+                <p className="text-[#4A4858] text-sm">Учёт без серийных номеров</p>
+              </div>
+            </div>
+            <p className="text-[#4A4858]">
+              Материалы и расходники с учётом количества на складах.
+            </p>
+          </div>
+        </a>
+
+        {isAdmin && (
+          <a href="/users" className="group">
+            <div className="bg-white rounded-2xl p-6 border border-[#EBEBF5] shadow-sm hover:border-[#14121F] hover:shadow-md transition-all">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-[#F4F4FC] border border-[#DFE1EE] flex items-center justify-center group-hover:bg-[#14121F] group-hover:border-[#14121F] transition-colors">
+                  <span className="text-3xl group-hover:text-white">👥</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#14121F] group-hover:text-[#6366F1] transition-colors">Пользователи</h3>
+                  <p className="text-[#4A4858] text-sm">Управление доступом</p>
+                </div>
+              </div>
+              <p className="text-[#4A4858]">
+                Создание пользователей, назначение ролей и прав доступа.
+              </p>
+            </div>
           </a>
-          <a href="/equipment" className="flex flex-col items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-            <span className="text-3xl mb-2">📡</span>
-            <span className="text-sm font-medium text-slate-700">Оборудование</span>
-          </a>
-          <a href="/materials" className="flex flex-col items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-            <span className="text-3xl mb-2">📦</span>
-            <span className="text-sm font-medium text-slate-700">Материалы</span>
-          </a>
-          {isAdmin && (
-            <a href="/users" className="flex flex-col items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-              <span className="text-3xl mb-2">👥</span>
-              <span className="text-sm font-medium text-slate-700">Пользователи</span>
-            </a>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
