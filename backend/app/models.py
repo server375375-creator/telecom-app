@@ -96,3 +96,50 @@ class WarehouseStock(Base):
     
     warehouse = relationship("Warehouse")
     equipment = relationship("Equipment")
+
+
+class Material(Base):
+    """Материалы (без серийных номеров)"""
+    __tablename__ = "materials"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    material_number = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(100), nullable=True)
+    unit = Column(String(20), default="шт")
+    min_quantity = Column(Integer, default=0)  # Минимальный остаток для уведомлений
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MaterialStock(Base):
+    """Остатки материалов на складах"""
+    __tablename__ = "material_stock"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
+    quantity = Column(Integer, default=0)
+    
+    material = relationship("Material", backref="stock_entries")
+    warehouse = relationship("Warehouse")
+
+
+class MaterialTransaction(Base):
+    """История движений материалов"""
+    __tablename__ = "material_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)
+    from_warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=True)
+    to_warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=True)
+    quantity = Column(Integer, nullable=False)
+    transaction_type = Column(String(20), nullable=False)  # add, transfer, write_off
+    notes = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    material = relationship("Material")
+    from_warehouse = relationship("Warehouse", foreign_keys=[from_warehouse_id])
+    to_warehouse = relationship("Warehouse", foreign_keys=[to_warehouse_id])
+    user = relationship("User", foreign_keys=[created_by])

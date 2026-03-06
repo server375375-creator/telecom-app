@@ -125,3 +125,58 @@ export const SERIAL_STATUS_LABELS: Record<SerialNumber['status'], string> = {
 export interface ApiError {
   detail: string;
 }
+
+// ============ МАТЕРИАЛЫ (без серийных номеров) ============
+
+// Материал
+export interface Material {
+  id: number;
+  material_number: string;      // Номер материала
+  name: string;                 // Название материала
+  description: string | null;
+  category: string | null;      // Категория
+  unit: string;                 // Единица измерения
+  min_quantity?: number;        // Минимальный остаток
+  created_at: string;
+}
+
+export interface MaterialCreate {
+  material_number: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  min_quantity?: number;
+}
+
+// Остаток материала на складе
+export interface MaterialStock {
+  id: number;
+  material_id: number;
+  warehouse_id: number;
+  quantity: number;
+  material?: Material;
+  warehouse?: Warehouse;
+}
+
+// Материал с остатками
+export interface MaterialWithStock extends Material {
+  total_quantity: number;
+  warehouses: MaterialWarehouseStock[];
+}
+
+export interface MaterialWarehouseStock {
+  warehouse_id: number;
+  warehouse_name: string;
+  is_central: boolean;
+  quantity: number;
+}
+
+// Перемещение материала
+export interface MaterialTransfer {
+  material_id: number;
+  from_warehouse_id: number | null;
+  to_warehouse_id: number;
+  quantity: number;
+  notes?: string;
+}

@@ -17,8 +17,8 @@ export const Layout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="text-xl font-bold text-indigo-600">
-              TelecomApp
+            <Link to="/" className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              ClassicGroupApp
             </Link>
 
             {/* Navigation */}
@@ -46,6 +46,14 @@ export const Layout = () => {
                 }`}
               >
                 Оборудование
+              </Link>
+              <Link
+                to="/materials"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/materials') ? 'bg-amber-100 text-amber-700' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Материалы
               </Link>
               {isAdmin && (
                 <Link

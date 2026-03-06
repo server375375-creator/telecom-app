@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "TelecomApp",
-  "version": "0.3.8",
-  "identifier": "com.telecom.tracking",
+  "productName": "ClassicGroupApp",
+  "version": "0.4.0",
+  "identifier": "com.classicgroup.tracking",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Telecom Work Tracking",
+        "title": "ClassicGroup - Складской учёт",
         "width": 1200,
         "height": 800,
         "resizable": true,
@@ -34,8 +34,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "Telecom",
-    "shortDescription": "Telecom Work Tracking Application",
+    "publisher": "ClassicGroup",
+    "shortDescription": "ClassicGroup - Складской учёт материалов и оборудования",
     "linux": {
       "deb": {
         "depends": []

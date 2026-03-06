@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Warehouses } from './pages/Warehouses';
 import { WarehouseForm } from './pages/WarehouseForm';
 import { EquipmentPage } from './pages/Equipment';
+import { MaterialsPage } from './pages/Materials';
 import { UsersPage } from './pages/Users';
 import { initApi } from './api/client';
 
@@ -45,6 +46,7 @@ function App() {
               }
             />
             <Route path="equipment" element={<EquipmentPage />} />
+            <Route path="materials" element={<MaterialsPage />} />
             <Route
               path="users"
               element={
