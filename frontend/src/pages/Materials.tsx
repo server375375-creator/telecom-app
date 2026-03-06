@@ -537,8 +537,10 @@ export const MaterialsPage = () => {
                           {isAdmin && w.quantity > 0 && (
                             <button
                               onClick={() => {
+                                const matId = selectedMaterial.id;
+                                const whId = w.warehouse_id;
                                 setSelectedMaterial(null);
-                                setTimeout(() => openTransfer(selectedMaterial.id, w.warehouse_id), 100);
+                                setTimeout(() => openTransfer(matId, whId), 100);
                               }}
                               className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-white hover:bg-blue-500 bg-blue-50 rounded-lg transition-all"
                             >
