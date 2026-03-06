@@ -280,10 +280,24 @@ export const Warehouses = () => {
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Склады</h1>
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-[#14121F] mb-1">Склады</h1>
+          <p className="text-[#4A4858]">Управление складами и перемещениями</p>
+        </div>
         {isAdmin && (
           <div className="flex gap-2 flex-wrap">
             <button
@@ -292,31 +306,31 @@ export const Warehouses = () => {
                 setBulkTransferMode('select');
                 setShowBulkTransfer(true);
               }}
-              className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 shadow-md transition-all duration-200 font-medium"
+              className="px-4 py-2.5 rounded-xl bg-[#F4F4FC] text-[#14121F] font-medium border border-[#DFE1EE] hover:bg-[#EBEBF5] hover:border-[#14121F] transition-all"
             >
               📦 Массовое перемещение
             </button>
             <button
               onClick={() => setShowTransfer(true)}
-              className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 shadow-md transition-all duration-200 font-medium"
+              className="px-4 py-2.5 rounded-xl bg-[#14121F] text-white font-medium shadow-lg hover:bg-[#2A2838] transition-all"
             >
               ↗️ Переместить
             </button>
             <button
               onClick={() => setShowAddStock(true)}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 shadow-md transition-all duration-200 font-medium"
+              className="px-4 py-2.5 rounded-xl bg-[#14121F] text-white font-medium shadow-lg hover:bg-[#2A2838] transition-all"
             >
               ➕ Поступление
             </button>
             <button
               onClick={() => setShowWriteOff(true)}
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 shadow-md transition-all duration-200 font-medium"
+              className="px-4 py-2.5 rounded-xl bg-[#F4F4FC] text-[#14121F] font-medium border border-[#DFE1EE] hover:bg-[#EBEBF5] hover:border-[#14121F] transition-all"
             >
               🗑️ Списание
             </button>
             <button
               onClick={() => setShowCreateWarehouse(true)}
-              className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-indigo-700 shadow-md transition-all duration-200 font-medium"
+              className="px-4 py-2.5 rounded-xl bg-[#14121F] text-white font-medium shadow-lg hover:bg-[#2A2838] transition-all"
             >
               + Создать склад
             </button>
@@ -324,157 +338,219 @@ export const Warehouses = () => {
         )}
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl p-5 border border-[#EBEBF5]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold text-[#14121F]">{warehouses.length}</div>
+              <div className="text-sm text-[#4A4858] font-medium">Складов</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+              <span className="text-xl">🏭</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-5 border border-[#EBEBF5]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold text-[#14121F]">{warehouses.filter(w => w.is_central).length}</div>
+              <div className="text-sm text-[#4A4858] font-medium">Центральных</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+              <span className="text-xl">⭐</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-5 border border-[#EBEBF5]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold text-[#14121F]">{equipment.length}</div>
+              <div className="text-sm text-[#4A4858] font-medium">Видов оборудования</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+              <span className="text-xl">📡</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-5 border border-[#EBEBF5]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold text-[#14121F]">{transactions.length}</div>
+              <div className="text-sm text-[#4A4858] font-medium">Операций</div>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+              <span className="text-xl">📋</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Загрузка...</p>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#DFE1EE] border-t-[#14121F]"></div>
+          <p className="mt-4 text-[#4A4858] font-medium">Загрузка...</p>
         </div>
       ) : (
         <>
-          {/* Список складов */}
+          {/* Warehouses grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {warehouses.map((wh) => (
               <div 
                 key={wh.id} 
-                className={`bg-white rounded-xl shadow-lg p-5 cursor-pointer hover:shadow-xl transition-all duration-300 border-2 ${wh.is_central ? 'border-indigo-400 bg-gradient-to-br from-indigo-50 to-white' : 'border-transparent hover:border-slate-200'}`}
+                className={`bg-white rounded-2xl p-6 cursor-pointer transition-all border-2 hover:shadow-md ${
+                  wh.is_central 
+                    ? 'border-[#14121F] bg-[#14121F] text-white' 
+                    : 'border-[#EBEBF5] hover:border-[#14121F]'
+                }`}
                 onClick={() => handleShowStock(wh.id)}
               >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg text-slate-800">{wh.name}</h3>
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-bold text-lg">{wh.name}</h3>
                   {wh.is_central && (
-                    <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">
+                    <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full font-medium">
                       ⭐ Центральный
                     </span>
                   )}
                 </div>
                 {wh.location && (
-                  <p className="text-slate-500 text-sm mt-2 flex items-center gap-1">
+                  <p className={`text-sm mb-2 flex items-center gap-1 ${wh.is_central ? 'text-white/70' : 'text-[#4A4858]'}`}>
                     <span>📍</span> {wh.location}
                   </p>
                 )}
                 {wh.user_name && (
-                  <p className="text-sm mt-2 text-slate-600">
-                    <span className="text-slate-400">👤 Монтажник:</span> {wh.user_name}
+                  <p className={`text-sm mb-2 ${wh.is_central ? 'text-white/70' : 'text-[#4A4858]'}`}>
+                    <span className={wh.is_central ? 'text-white/50' : 'text-[#4A4858]/50'}>👤 Монтажник:</span> {wh.user_name}
                   </p>
                 )}
                 {wh.description && (
-                  <p className="text-slate-400 text-sm mt-2">{wh.description}</p>
+                  <p className={`text-sm ${wh.is_central ? 'text-white/60' : 'text-[#4A4858]/70'}`}>{wh.description}</p>
                 )}
               </div>
             ))}
           </div>
 
-          {/* История операций */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-              <h2 className="text-lg font-semibold text-slate-800">📋 История операций</h2>
+          {/* Transactions */}
+          <div className="bg-white rounded-2xl border border-[#EBEBF5] overflow-hidden">
+            <div className="p-4 border-b border-[#EBEBF5] bg-[#F4F4FC]">
+              <h2 className="text-lg font-bold text-[#14121F]">📋 История операций</h2>
             </div>
             {transactions.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">Нет операций</div>
+              <div className="p-8 text-center text-[#4A4858]">Нет операций</div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-100">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Дата</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Тип</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Оборудование</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Откуда</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Куда</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Кол-во</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Пользователь</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {transactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-600">{new Date(tx.created_at).toLocaleString('ru')}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          tx.transaction_type === 'add' ? 'bg-emerald-100 text-emerald-700' :
-                          tx.transaction_type === 'write_off' ? 'bg-red-100 text-red-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {getTransactionTypeLabel(tx.transaction_type)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {tx.equipment_name}
-                        {tx.serial_number && <span className="text-slate-400 ml-1 font-mono">({tx.serial_number})</span>}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{tx.from_warehouse || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{tx.to_warehouse || '—'}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-700">{tx.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{tx.created_by_name}</td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-[#EBEBF5]">
+                  <thead className="bg-[#F4F4FC]">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Дата</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Тип</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Оборудование</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Откуда</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Куда</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Кол-во</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase tracking-wider">Пользователь</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[#EBEBF5]">
+                    {transactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-[#F4F4FC] transition-colors">
+                        <td className="px-4 py-3 text-sm text-[#4A4858]">{formatDate(tx.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                            tx.transaction_type === 'add' ? 'bg-[#14121F] text-white' :
+                            tx.transaction_type === 'write_off' ? 'bg-[#14121F] text-white' :
+                            'bg-[#F4F4FC] text-[#14121F] border border-[#DFE1EE]'
+                          }`}>
+                            {getTransactionTypeLabel(tx.transaction_type)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[#14121F]">
+                          {tx.equipment_name}
+                          {tx.serial_number && <span className="text-[#4A4858] ml-1 font-mono text-xs">({tx.serial_number})</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[#4A4858]">{tx.from_warehouse || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-[#4A4858]">{tx.to_warehouse || '—'}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-[#14121F]">{tx.quantity}</td>
+                        <td className="px-4 py-3 text-sm text-[#4A4858]">{tx.created_by_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>
       )}
 
-      {/* Модальное окно: Остатки на складе */}
+      {/* Modal: Stock */}
       {showStock && stockData && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden m-4 flex flex-col">
-            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">
-                📦 Остатки: {warehouses.find(w => w.id === showStock)?.name}
-              </h2>
-              <button onClick={() => setShowStock(null)} className="text-slate-400 hover:text-slate-600 text-2xl transition-colors">
-                ✕
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden">
+            <div className="p-6 border-b border-[#EBEBF5] bg-[#14121F] text-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">
+                  📦 Остатки: {warehouses.find(w => w.id === showStock)?.name}
+                </h2>
+                <button onClick={() => setShowStock(null)} className="text-white/70 hover:text-white text-2xl">
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div className="p-5 overflow-auto flex-1">
-              {/* Общая статистика */}
-              <div className="mb-5 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl">
+            <div className="p-6 overflow-auto max-h-[calc(85vh-80px)]">
+              {/* Stats */}
+              <div className="mb-6 p-4 bg-[#F4F4FC] rounded-xl border border-[#DFE1EE]">
                 <div className="flex gap-8">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🔧</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#14121F] flex items-center justify-center">
+                      <span className="text-2xl">🔧</span>
+                    </div>
                     <div>
-                      <span className="text-slate-500 text-sm">Серийное оборудование</span>
-                      <p className="font-bold text-slate-800">{stockData.serial_numbers.length} ед.</p>
+                      <span className="text-[#4A4858] text-sm">Серийное оборудование</span>
+                      <p className="font-bold text-[#14121F] text-xl">{stockData.serial_numbers.length} ед.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">📋</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#F4F4FC] flex items-center justify-center border border-[#DFE1EE]">
+                      <span className="text-2xl">📋</span>
+                    </div>
                     <div>
-                      <span className="text-slate-500 text-sm">Материалов на складе</span>
-                      <p className="font-bold text-slate-800">{stockData.stock.reduce((sum, s) => sum + s.quantity, 0)} ед.</p>
+                      <span className="text-[#4A4858] text-sm">Материалов на складе</span>
+                      <p className="font-bold text-[#14121F] text-xl">{stockData.stock.reduce((sum, s) => sum + s.quantity, 0)} ед.</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Серийные номера */}
+              {/* Serial numbers */}
               <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-slate-700 flex items-center gap-2">
-                  <span>🔧</span> Серийное оборудование ({stockData.serial_numbers.length} ед.)
+                <h3 className="font-bold text-[#14121F] mb-3 flex items-center gap-2">
+                  🔧 Серийное оборудование ({stockData.serial_numbers.length} ед.)
                 </h3>
                 {stockData.serial_numbers.length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-4 bg-slate-50 rounded-lg">Нет серийного оборудования</p>
+                  <div className="text-center py-8 bg-[#F4F4FC] rounded-xl text-[#4A4858]">
+                    Нет серийного оборудования
+                  </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-100">
-                      <thead className="bg-slate-50">
+                  <div className="bg-[#F4F4FC] rounded-xl overflow-hidden border border-[#DFE1EE]">
+                    <table className="min-w-full divide-y divide-[#DFE1EE]">
+                      <thead className="bg-white">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Серийный номер</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Оборудование</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Статус</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Серийный номер</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Оборудование</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Статус</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#DFE1EE]">
                         {stockData.serial_numbers.map((s) => (
-                          <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-3 font-mono text-sm text-slate-700">{s.serial_number}</td>
-                            <td className="px-4 py-3 text-sm text-slate-600">{s.equipment.name}</td>
+                          <tr key={s.id} className="bg-white hover:bg-[#F4F4FC] transition-colors">
+                            <td className="px-4 py-3 font-mono text-sm text-[#14121F]">{s.serial_number}</td>
+                            <td className="px-4 py-3 text-sm text-[#4A4858]">{s.equipment.name}</td>
                             <td className="px-4 py-3">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                s.status === 'available' ? 'bg-emerald-100 text-emerald-700' :
-                                s.status === 'in_use' ? 'bg-blue-100 text-blue-700' :
-                                'bg-red-100 text-red-700'
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                s.status === 'available' ? 'bg-[#14121F] text-white' :
+                                s.status === 'in_use' ? 'bg-[#F4F4FC] text-[#14121F] border border-[#DFE1EE]' :
+                                'bg-[#14121F] text-white'
                               }`}>
                                 {s.status === 'available' ? '✓ Доступен' : s.status === 'in_use' ? '⏳ В использовании' : '✕ Неисправен'}
                               </span>
@@ -487,31 +563,37 @@ export const Warehouses = () => {
                 )}
               </div>
 
-              {/* Остатки */}
+              {/* Stock */}
               <div>
-                <h3 className="font-semibold mb-3 text-slate-700 flex items-center gap-2">
-                  <span>📋</span> Материалы
+                <h3 className="font-bold text-[#14121F] mb-3 flex items-center gap-2">
+                  📋 Материалы
                 </h3>
                 {stockData.stock.length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-4 bg-slate-50 rounded-lg">Нет материалов</p>
+                  <div className="text-center py-8 bg-[#F4F4FC] rounded-xl text-[#4A4858]">
+                    Нет материалов
+                  </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-100">
-                      <thead className="bg-slate-50">
+                  <div className="bg-[#F4F4FC] rounded-xl overflow-hidden border border-[#DFE1EE]">
+                    <table className="min-w-full divide-y divide-[#DFE1EE]">
+                      <thead className="bg-white">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Материал</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Номер материала</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Количество</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ед. изм.</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Материал</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Номер материала</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-[#4A4858] uppercase">Количество</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-[#4A4858] uppercase">Ед. изм.</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#DFE1EE]">
                         {stockData.stock.map((s) => (
-                          <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-3 text-sm text-slate-700">{s.equipment.name}</td>
-                            <td className="px-4 py-3 font-mono text-sm text-slate-500">{s.equipment.material_number}</td>
-                            <td className="px-4 py-3 text-center font-bold text-slate-800">{s.quantity}</td>
-                            <td className="px-4 py-3 text-sm text-slate-500">{s.equipment.unit}</td>
+                          <tr key={s.id} className="bg-white hover:bg-[#F4F4FC] transition-colors">
+                            <td className="px-4 py-3 text-sm text-[#14121F]">{s.equipment.name}</td>
+                            <td className="px-4 py-3 font-mono text-sm text-[#4A4858]">{s.equipment.material_number}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="px-3 py-1 bg-[#14121F] text-white rounded-lg text-sm font-bold">
+                                {s.quantity}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-[#4A4858]">{s.equipment.unit}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -524,67 +606,67 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Создать склад */}
+      {/* Modal: Create Warehouse */}
       {showCreateWarehouse && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4">
-            <div className="p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">🏢 Новый склад</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 bg-[#14121F] text-white">
+              <h2 className="text-2xl font-bold">🏢 Новый склад</h2>
             </div>
             <form onSubmit={handleCreateWarehouse}>
-              <div className="p-5 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Название *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Название *</label>
                   <input
                     type="text"
                     required
                     value={newWarehouse.name}
                     onChange={(e) => setNewWarehouse({...newWarehouse, name: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Расположение</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Расположение</label>
                   <input
                     type="text"
                     value={newWarehouse.location}
                     onChange={(e) => setNewWarehouse({...newWarehouse, location: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Описание</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Описание</label>
                   <textarea
                     value={newWarehouse.description}
                     onChange={(e) => setNewWarehouse({...newWarehouse, description: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                     rows={2}
                   />
                 </div>
-                <div className="flex items-center p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center p-3 bg-[#F4F4FC] rounded-xl border border-[#DFE1EE]">
                   <input
                     type="checkbox"
                     id="is_central"
                     checked={newWarehouse.is_central}
                     onChange={(e) => setNewWarehouse({...newWarehouse, is_central: e.target.checked})}
-                    className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                    className="h-5 w-5 text-[#14121F] rounded focus:ring-[#14121F]"
                   />
-                  <label htmlFor="is_central" className="ml-3 text-sm text-slate-700">
+                  <label htmlFor="is_central" className="ml-3 text-sm text-[#14121F] font-medium">
                     ⭐ Центральный склад
                   </label>
                 </div>
               </div>
-              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+              <div className="p-6 border-t border-[#EBEBF5] bg-[#F4F4FC] flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateWarehouse(false)}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium text-slate-600"
+                  className="px-5 py-2.5 border border-[#DFE1EE] rounded-xl hover:bg-white transition-colors font-semibold text-[#4A4858]"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-md transition-all font-medium"
+                  className="px-6 py-2.5 bg-[#14121F] text-white rounded-xl hover:bg-[#2A2838] shadow-lg transition-all font-semibold"
                 >
                   Создать
                 </button>
@@ -594,63 +676,63 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Переместить (один) */}
+      {/* Modal: Transfer */}
       {showTransfer && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4">
-            <div className="p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">↗️ Переместить оборудование</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 bg-[#14121F] text-white">
+              <h2 className="text-2xl font-bold">↗️ Переместить оборудование</h2>
             </div>
             <form onSubmit={handleTransfer}>
-              <div className="p-5 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Серийный номер *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Серийный номер *</label>
                   <input
                     type="text"
                     required
                     value={transferForm.serial_number}
                     onChange={(e) => setTransferForm({...transferForm, serial_number: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white font-mono"
                     placeholder="Введите серийный номер"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">На склад *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">На склад *</label>
                   <select
                     required
                     value={transferForm.to_warehouse_id}
                     onChange={(e) => setTransferForm({...transferForm, to_warehouse_id: Number(e.target.value)})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   >
                     <option value="">Выберите склад</option>
                     {warehouses.map((w) => (
                       <option key={w.id} value={w.id}>
-                        {w.name} {w.is_central ? '(Центральный)' : ''}
+                        {w.name} {w.is_central ? '⭐' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Примечания</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Примечания</label>
                   <input
                     type="text"
                     value={transferForm.notes}
                     onChange={(e) => setTransferForm({...transferForm, notes: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
               </div>
-              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+              <div className="p-6 border-t border-[#EBEBF5] bg-[#F4F4FC] flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowTransfer(false)}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium text-slate-600"
+                  className="px-5 py-2.5 border border-[#DFE1EE] rounded-xl hover:bg-white transition-colors font-semibold text-[#4A4858]"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 shadow-md transition-all font-medium"
+                  className="px-6 py-2.5 bg-[#14121F] text-white rounded-xl hover:bg-[#2A2838] shadow-lg transition-all font-semibold"
                 >
                   Переместить
                 </button>
@@ -660,17 +742,17 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Массовое перемещение */}
+      {/* Modal: Bulk Transfer */}
       {showBulkTransfer && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full m-4 max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
-              <h2 className="text-xl font-bold text-slate-800">📦 Массовое перемещение оборудования</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 bg-[#14121F] text-white">
+              <h2 className="text-2xl font-bold">📦 Массовое перемещение оборудования</h2>
             </div>
             
-            {/* Переключатель режима */}
-            <div className="px-5 pt-4">
-              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+            {/* Mode toggle */}
+            <div className="px-6 pt-4">
+              <div className="flex gap-2 p-1 bg-[#F4F4FC] rounded-xl border border-[#DFE1EE]">
                 <button
                   type="button"
                   onClick={() => {
@@ -678,7 +760,7 @@ export const Warehouses = () => {
                     setSelectedSerials(new Set());
                     setBulkTransferSerials([]);
                   }}
-                  className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${bulkTransferMode === 'select' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${bulkTransferMode === 'select' ? 'bg-[#14121F] text-white' : 'text-[#4A4858] hover:text-[#14121F]'}`}
                 >
                   🖱️ Выбор из списка
                 </button>
@@ -689,7 +771,7 @@ export const Warehouses = () => {
                     setSelectedSerials(new Set());
                     setBulkTransferSerials([]);
                   }}
-                  className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${bulkTransferMode === 'text' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${bulkTransferMode === 'text' ? 'bg-[#14121F] text-white' : 'text-[#4A4858] hover:text-[#14121F]'}`}
                 >
                   📝 Ввод вручную
                 </button>
@@ -697,27 +779,27 @@ export const Warehouses = () => {
             </div>
             
             <form onSubmit={handleBulkTransfer} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-5 space-y-4 flex-1 overflow-auto">
+              <div className="p-6 space-y-4 flex-1 overflow-auto">
                 {bulkTransferMode === 'text' ? (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label className="block text-sm font-semibold text-[#14121F] mb-1.5">
                       Серийные номера * 
-                      <span className="text-slate-400 font-normal ml-1">(по одному на строку или через запятую)</span>
+                      <span className="text-[#4A4858] font-normal ml-1">(по одному на строку или через запятую)</span>
                     </label>
                     <textarea
                       required
                       value={bulkTransferForm.serial_numbers_text}
                       onChange={(e) => setBulkTransferForm({...bulkTransferForm, serial_numbers_text: e.target.value})}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono text-sm bg-slate-50"
+                      className="w-full px-4 py-3 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all font-mono text-sm bg-white"
                       rows={8}
                       placeholder="SN001&#10;SN002&#10;SN003&#10;или SN001, SN002, SN003"
                     />
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Выбор склада-источника */}
+                    {/* Source warehouse */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-[#14121F] mb-1.5">
                         📤 Со склада (источник)
                       </label>
                       <select
@@ -728,7 +810,7 @@ export const Warehouses = () => {
                           setSelectedSerials(new Set());
                           loadBulkTransferSerials(warehouseId);
                         }}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-slate-50"
+                        className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                       >
                         <option value={0}>Выберите склад-источник</option>
                         {warehouses.map((w) => (
@@ -739,72 +821,72 @@ export const Warehouses = () => {
                       </select>
                     </div>
                     
-                    {/* Список серийников */}
+                    {/* Serials list */}
                     {bulkTransferWarehouse > 0 && (
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <label className="block text-sm font-medium text-slate-700">
+                          <label className="block text-sm font-semibold text-[#14121F]">
                             🔧 Выберите серийные номера ({bulkTransferSerials.length} доступно)
                           </label>
                           <div className="flex gap-2">
                             <button
                               type="button"
                               onClick={selectAllSerials}
-                              className="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 rounded hover:bg-purple-50 transition-colors"
+                              className="text-xs text-[#14121F] hover:text-[#4A4858] font-medium px-2 py-1 rounded hover:bg-[#F4F4FC] transition-colors"
                             >
                               ✓ Выбрать все
                             </button>
                             <button
                               type="button"
                               onClick={clearSerialSelection}
-                              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 transition-colors"
+                              className="text-xs text-[#4A4858] hover:text-[#14121F] px-2 py-1 rounded hover:bg-[#F4F4FC] transition-colors"
                             >
                               ✕ Очистить
                             </button>
                           </div>
                         </div>
                         
-                        <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-auto bg-slate-50">
+                        <div className="border border-[#DFE1EE] rounded-xl overflow-hidden max-h-64 overflow-auto bg-[#F4F4FC]">
                           {loadingBulkSerials ? (
                             <div className="p-8 text-center">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                              <p className="mt-2 text-sm text-slate-500">Загрузка серийников...</p>
+                              <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#DFE1EE] border-t-[#14121F] mx-auto"></div>
+                              <p className="mt-2 text-sm text-[#4A4858]">Загрузка серийников...</p>
                             </div>
                           ) : bulkTransferSerials.length === 0 ? (
-                            <div className="p-8 text-center text-slate-400 text-sm">
+                            <div className="p-8 text-center text-[#4A4858] text-sm">
                               Нет серийного оборудования на этом складе
                             </div>
                           ) : (
-                            <table className="min-w-full divide-y divide-slate-200">
-                              <thead className="bg-slate-100 sticky top-0">
+                            <table className="min-w-full divide-y divide-[#DFE1EE]">
+                              <thead className="bg-white sticky top-0">
                                 <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase w-10">✓</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Серийный номер</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Оборудование</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Статус</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-[#4A4858] uppercase w-10">✓</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-[#4A4858] uppercase">Серийный номер</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-[#4A4858] uppercase">Оборудование</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-[#4A4858] uppercase">Статус</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-200 bg-white">
+                              <tbody className="divide-y divide-[#DFE1EE] bg-white">
                                 {bulkTransferSerials.map((s) => (
                                   <tr 
                                     key={s.id} 
                                     onClick={() => toggleSerialSelection(s.serial_number)}
-                                    className={`cursor-pointer transition-all ${selectedSerials.has(s.serial_number) ? 'bg-purple-50 hover:bg-purple-100' : 'hover:bg-slate-50'}`}
+                                    className={`cursor-pointer transition-all ${selectedSerials.has(s.serial_number) ? 'bg-[#14121F] text-white' : 'hover:bg-[#F4F4FC]'}`}
                                   >
                                     <td className="px-4 py-2">
-                                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedSerials.has(s.serial_number) ? 'bg-purple-600 border-purple-600' : 'border-slate-300'}`}>
+                                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedSerials.has(s.serial_number) ? 'bg-white border-white' : 'border-[#DFE1EE]'}`}>
                                         {selectedSerials.has(s.serial_number) && (
-                                          <span className="text-white text-xs">✓</span>
+                                          <span className="text-[#14121F] text-xs">✓</span>
                                         )}
                                       </div>
                                     </td>
-                                    <td className="px-4 py-2 font-mono text-sm text-slate-700">{s.serial_number}</td>
-                                    <td className="px-4 py-2 text-sm text-slate-600">{s.equipment.name}</td>
+                                    <td className="px-4 py-2 font-mono text-sm">{s.serial_number}</td>
+                                    <td className="px-4 py-2 text-sm">{s.equipment.name}</td>
                                     <td className="px-4 py-2">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                        s.status === 'available' ? 'bg-emerald-100 text-emerald-700' :
-                                        s.status === 'in_use' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-red-100 text-red-700'
+                                      <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                                        s.status === 'available' ? 'bg-white/20' :
+                                        s.status === 'in_use' ? 'bg-white/20' :
+                                        'bg-white/20'
                                       }`}>
                                         {s.status === 'available' ? 'Доступен' : s.status === 'in_use' ? 'В работе' : 'Брак'}
                                       </span>
@@ -818,20 +900,20 @@ export const Warehouses = () => {
                       </div>
                     )}
                     
-                    {/* Показать выбранные */}
+                    {/* Selected count */}
                     {selectedSerials.size > 0 && (
-                      <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
-                        <p className="text-sm text-purple-700 font-medium mb-2">
+                      <div className="p-3 bg-[#14121F] rounded-xl text-white">
+                        <p className="text-sm font-medium mb-2">
                           ✓ Выбрано: {selectedSerials.size} серийных номеров
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {Array.from(selectedSerials).slice(0, 15).map(sn => (
-                            <span key={sn} className="px-2 py-1 bg-white rounded text-xs font-mono text-slate-600 shadow-sm border border-slate-100">
+                            <span key={sn} className="px-2 py-1 bg-white/20 rounded text-xs font-mono">
                               {sn}
                             </span>
                           ))}
                           {selectedSerials.size > 15 && (
-                            <span className="px-2 py-1 text-xs text-slate-400 bg-white rounded border border-slate-100">
+                            <span className="px-2 py-1 text-xs bg-white/20 rounded">
                               +{selectedSerials.size - 15} ещё
                             </span>
                           )}
@@ -839,16 +921,16 @@ export const Warehouses = () => {
                       </div>
                     )}
                     
-                    {/* Склад назначения */}
+                    {/* Target warehouse */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-[#14121F] mb-1.5">
                         📥 На склад (назначение)
                       </label>
                       <select
                         required
                         value={targetWarehouse}
                         onChange={(e) => setTargetWarehouse(Number(e.target.value))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-slate-50"
+                        className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                       >
                         <option value={0}>Выберите склад назначения</option>
                         {warehouses.filter(w => w.id !== bulkTransferWarehouse).map((w) => (
@@ -862,17 +944,17 @@ export const Warehouses = () => {
                 )}
                 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Примечания</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Примечания</label>
                   <input
                     type="text"
                     value={bulkTransferForm.notes}
                     onChange={(e) => setBulkTransferForm({...bulkTransferForm, notes: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-slate-50"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                     placeholder="Комментарий к перемещению..."
                   />
                 </div>
               </div>
-              <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <div className="p-6 border-t border-[#EBEBF5] bg-[#F4F4FC] flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -881,14 +963,14 @@ export const Warehouses = () => {
                     setBulkTransferSerials([]);
                     setTargetWarehouse(0);
                   }}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-white transition-colors font-medium text-slate-600"
+                  className="px-5 py-2.5 border border-[#DFE1EE] rounded-xl hover:bg-white transition-colors font-semibold text-[#4A4858]"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={bulkTransferMode === 'select' && selectedSerials.size === 0}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 shadow-md transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 bg-[#14121F] text-white rounded-xl hover:bg-[#2A2838] shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   📦 Переместить {selectedSerials.size > 0 ? `(${selectedSerials.size})` : ''}
                 </button>
@@ -898,22 +980,22 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Поступление */}
+      {/* Modal: Add Stock */}
       {showAddStock && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4">
-            <div className="p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">➕ Поступление материалов</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 bg-[#14121F] text-white">
+              <h2 className="text-2xl font-bold">➕ Поступление материалов</h2>
             </div>
             <form onSubmit={handleAddStock}>
-              <div className="p-5 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Оборудование *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Оборудование *</label>
                   <select
                     required
                     value={addStockForm.equipment_id}
                     onChange={(e) => setAddStockForm({...addStockForm, equipment_id: Number(e.target.value)})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   >
                     <option value="">Выберите оборудование</option>
                     {equipment.map((eq) => (
@@ -924,53 +1006,53 @@ export const Warehouses = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">На склад *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">На склад *</label>
                   <select
                     required
                     value={addStockForm.warehouse_id}
                     onChange={(e) => setAddStockForm({...addStockForm, warehouse_id: Number(e.target.value)})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   >
                     <option value="">Выберите склад</option>
                     {warehouses.map((w) => (
                       <option key={w.id} value={w.id}>
-                        {w.name} {w.is_central ? '(Центральный)' : ''}
+                        {w.name} {w.is_central ? '⭐' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Количество *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Количество *</label>
                   <input
                     type="number"
                     required
                     min={1}
                     value={addStockForm.quantity}
                     onChange={(e) => setAddStockForm({...addStockForm, quantity: Number(e.target.value)})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Примечания</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Примечания</label>
                   <input
                     type="text"
                     value={addStockForm.notes}
                     onChange={(e) => setAddStockForm({...addStockForm, notes: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
               </div>
-              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+              <div className="p-6 border-t border-[#EBEBF5] bg-[#F4F4FC] flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAddStock(false)}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium text-slate-600"
+                  className="px-5 py-2.5 border border-[#DFE1EE] rounded-xl hover:bg-white transition-colors font-semibold text-[#4A4858]"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-md transition-all font-medium"
+                  className="px-6 py-2.5 bg-[#14121F] text-white rounded-xl hover:bg-[#2A2838] shadow-lg transition-all font-semibold"
                 >
                   Добавить
                 </button>
@@ -980,34 +1062,34 @@ export const Warehouses = () => {
         </div>
       )}
 
-      {/* Модальное окно: Списание */}
+      {/* Modal: Write Off */}
       {showWriteOff && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4">
-            <div className="p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">🗑️ Списание материалов</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 bg-[#14121F] text-white">
+              <h2 className="text-2xl font-bold">🗑️ Списание материалов</h2>
             </div>
             <form onSubmit={handleWriteOff}>
-              <div className="p-5 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Серийный номер (для серийного оборудования)</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Серийный номер (для серийного оборудования)</label>
                   <input
                     type="text"
                     value={writeOffForm.serial_number}
                     onChange={(e) => setWriteOffForm({...writeOffForm, serial_number: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white font-mono"
                     placeholder="Оставьте пустым для несерийного"
                   />
                 </div>
                 {!writeOffForm.serial_number && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Оборудование *</label>
+                      <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Оборудование *</label>
                       <select
                         required
                         value={writeOffForm.equipment_id}
                         onChange={(e) => setWriteOffForm({...writeOffForm, equipment_id: Number(e.target.value)})}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                       >
                         <option value="">Выберите оборудование</option>
                         {equipment.map((eq) => (
@@ -1018,55 +1100,55 @@ export const Warehouses = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Количество *</label>
+                      <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Количество *</label>
                       <input
                         type="number"
                         required
                         min={1}
                         value={writeOffForm.quantity}
                         onChange={(e) => setWriteOffForm({...writeOffForm, quantity: Number(e.target.value)})}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                       />
                     </div>
                   </>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Со склада *</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Со склада *</label>
                   <select
                     required
                     value={writeOffForm.warehouse_id}
                     onChange={(e) => setWriteOffForm({...writeOffForm, warehouse_id: Number(e.target.value)})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   >
                     <option value="">Выберите склад</option>
                     {warehouses.map((w) => (
                       <option key={w.id} value={w.id}>
-                        {w.name} {w.is_central ? '(Центральный)' : ''}
+                        {w.name} {w.is_central ? '⭐' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Причина списания</label>
+                  <label className="block text-sm font-semibold text-[#14121F] mb-1.5">Причина списания</label>
                   <input
                     type="text"
                     value={writeOffForm.notes}
                     onChange={(e) => setWriteOffForm({...writeOffForm, notes: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-[#DFE1EE] rounded-xl focus:ring-2 focus:ring-[#14121F] focus:border-transparent transition-all bg-white"
                   />
                 </div>
               </div>
-              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+              <div className="p-6 border-t border-[#EBEBF5] bg-[#F4F4FC] flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowWriteOff(false)}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium text-slate-600"
+                  className="px-5 py-2.5 border border-[#DFE1EE] rounded-xl hover:bg-white transition-colors font-semibold text-[#4A4858]"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-md transition-all font-medium"
+                  className="px-6 py-2.5 bg-[#14121F] text-white rounded-xl hover:bg-[#2A2838] shadow-lg transition-all font-semibold"
                 >
                   Списать
                 </button>
