@@ -8,22 +8,38 @@ import {
   cancelReport,
   deleteReport,
   getReportStats,
-  exportReportsCsv,
-  exportReportsExcel,
 } from '../api/reports';
 import type { ReportsFilter } from '../api/reports';
 import { getUsers } from '../api/auth';
+import { api } from '../api/client';
 import type {
   WorkReport,
   WorkObject,
   TechnicianStock,
-  TechnicianEquipmentItem,
   ReportStats,
   User,
 } from '../types';
 import { REPORT_STATUS_LABELS } from '../types';
 
+// Локальный тип для оборудования на складе
+interface TechnicianEquipmentItem {
+  serial_id: number;
+  equipment_id: number;
+  name: string;
+  serial_number: string;
+}
+
 type TabType = 'create' | 'list' | 'stats' | 'objects';
+
+// Тип для позиции в отчете
+interface ReportItem {
+  id: string;
+  type: 'equipment' | 'material';
+  equipment_id: number;
+  serial_number_id: number;
+  material_id: number;
+  quantity: number;
+}
 
 export function ReportsPage() {
   const { user } = useAuth();
@@ -52,16 +68,21 @@ export function ReportsPage() {
     work_object_id: 0,
     object_name: '',
     object_address: '',
-    item_type: 'equipment' as 'equipment' | 'material',
+    notes: '',
+  });
+  
+  // Список позиций для списания (оборудование + материалы)
+  const [reportItems, setReportItems] = useState<ReportItem[]>([]);
+  
+  // Текущая добавляемая позиция
+  const [currentItem, setCurrentItem] = useState<ReportItem>({
+    id: '',
+    type: 'equipment',
     equipment_id: 0,
     serial_number_id: 0,
     material_id: 0,
     quantity: 1,
-    notes: '',
   });
-  
-  // Выбранное оборудование (для фильтрации серийных номеров)
-  const [selectedEquipment, setSelectedEquipment] = useState<TechnicianEquipmentItem | null>(null);
   
   // Модальное окно отмены
   const [cancelModal, setCancelModal] = useState<{ show: boolean; reportId: number; reason: string }>({
@@ -119,76 +140,144 @@ export function ReportsPage() {
     setReports(reportsData);
   };
 
-  // Обработка выбора оборудования
-  useEffect(() => {
-    if (formData.equipment_id && stock) {
-      const equip = stock.equipment.find(e => e.equipment_id === formData.equipment_id);
-      setSelectedEquipment(equip || null);
-      if (equip) {
-        setFormData(prev => ({ ...prev, serial_number_id: equip.serial_id }));
-      } else {
-        setFormData(prev => ({ ...prev, serial_number_id: 0 }));
+  // Группировка оборудования по наименованию
+  const getGroupedEquipment = () => {
+    if (!stock?.equipment) return {};
+    const groups: Record<number, TechnicianEquipmentItem[]> = {};
+    stock.equipment.forEach(item => {
+      if (!groups[item.equipment_id]) {
+        groups[item.equipment_id] = [];
       }
-    } else {
-      setSelectedEquipment(null);
-    }
-  }, [formData.equipment_id, stock]);
+      groups[item.equipment_id].push(item);
+    });
+    return groups;
+  };
 
-  // Создание отчета
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    
-    if (formData.item_type === 'equipment') {
-      if (!formData.equipment_id || !formData.serial_number_id) {
+  // Получить список серийных номеров для выбранного оборудования
+  const getSerialNumbers = (equipmentId: number) => {
+    return stock?.equipment.filter(e => e.equipment_id === equipmentId) || [];
+  };
+
+  // Добавить позицию в список
+  const handleAddItem = () => {
+    if (currentItem.type === 'equipment') {
+      if (!currentItem.equipment_id || !currentItem.serial_number_id) {
         setError('Выберите оборудование и серийный номер');
         return;
       }
     } else {
-      if (!formData.material_id) {
+      if (!currentItem.material_id) {
         setError('Выберите материал');
         return;
       }
-      if (formData.quantity < 1) {
+      if (currentItem.quantity < 1) {
         setError('Количество должно быть не менее 1');
         return;
       }
     }
     
+    // Проверяем, не добавлен ли уже этот серийный номер
+    if (currentItem.type === 'equipment') {
+      const exists = reportItems.find(
+        item => item.type === 'equipment' && item.serial_number_id === currentItem.serial_number_id
+      );
+      if (exists) {
+        setError('Этот серийный номер уже добавлен в отчет');
+        return;
+      }
+    }
+    
+    const newItem: ReportItem = {
+      ...currentItem,
+      id: `${currentItem.type}-${currentItem.type === 'equipment' ? currentItem.serial_number_id : currentItem.material_id}-${Date.now()}`,
+    };
+    
+    setReportItems([...reportItems, newItem]);
+    setCurrentItem({
+      id: '',
+      type: 'equipment',
+      equipment_id: 0,
+      serial_number_id: 0,
+      material_id: 0,
+      quantity: 1,
+    });
+    setError(null);
+  };
+
+  // Удалить позицию из списка
+  const handleRemoveItem = (id: string) => {
+    setReportItems(reportItems.filter(item => item.id !== id));
+  };
+
+  // Получить название позиции для отображения
+  const getItemName = (item: ReportItem) => {
+    if (item.type === 'equipment') {
+      const equip = stock?.equipment.find(e => e.serial_id === item.serial_number_id);
+      return equip ? `${equip.name} (S/N: ${equip.serial_number})` : 'Неизвестное оборудование';
+    } else {
+      const mat = stock?.materials.find(m => m.material_id === item.material_id);
+      return mat ? `${mat.name} (${item.quantity} ${mat.unit})` : 'Неизвестный материал';
+    }
+  };
+
+  // Создание отчетов (по одной записи на каждую позицию)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    
+    if (reportItems.length === 0) {
+      setError('Добавьте хотя бы одну позицию для списания');
+      return;
+    }
+    
     setLoading(true);
+    let successCount = 0;
+    let errorMessages: string[] = [];
+    
     try {
-      await createReport({
-        work_date: formData.work_date,
-        work_object_id: formData.work_object_id || undefined,
-        object_name: formData.object_name || undefined,
-        object_address: formData.object_address || undefined,
-        equipment_id: formData.item_type === 'equipment' ? formData.equipment_id : undefined,
-        serial_number_id: formData.item_type === 'equipment' ? formData.serial_number_id : undefined,
-        material_id: formData.item_type === 'material' ? formData.material_id : undefined,
-        quantity: formData.item_type === 'material' ? formData.quantity : 1,
-        notes: formData.notes || undefined,
-      });
+      for (const item of reportItems) {
+        try {
+          await createReport({
+            work_date: formData.work_date,
+            work_object_id: formData.work_object_id || undefined,
+            object_name: formData.object_name || undefined,
+            object_address: formData.object_address || undefined,
+            equipment_id: item.type === 'equipment' ? item.equipment_id : undefined,
+            serial_number_id: item.type === 'equipment' ? item.serial_number_id : undefined,
+            material_id: item.type === 'material' ? item.material_id : undefined,
+            quantity: item.type === 'material' ? item.quantity : 1,
+            notes: formData.notes || undefined,
+          });
+          successCount++;
+        } catch (err: any) {
+          errorMessages.push(getItemName(item) + ': ' + (err.response?.data?.detail || 'Ошибка'));
+        }
+      }
       
-      setSuccess('Отчет создан и материалы списаны со склада');
+      if (successCount > 0) {
+        setSuccess(`Создано ${successCount} записей отчета. Материалы списаны со склада.`);
+        
+        // Обновляем остатки
+        const stockData = await getMyStock();
+        setStock(stockData);
+        
+        // Очищаем список позиций
+        setReportItems([]);
+        
+        // Сбрасываем форму
+        setFormData({
+          work_date: new Date().toISOString().slice(0, 16),
+          work_object_id: 0,
+          object_name: '',
+          object_address: '',
+          notes: '',
+        });
+      }
       
-      // Обновляем остатки
-      const stockData = await getMyStock();
-      setStock(stockData);
-      
-      // Сбрасываем форму
-      setFormData({
-        work_date: new Date().toISOString().slice(0, 16),
-        work_object_id: 0,
-        object_name: '',
-        object_address: '',
-        item_type: 'equipment',
-        equipment_id: 0,
-        serial_number_id: 0,
-        material_id: 0,
-        quantity: 1,
-        notes: '',
-      });
+      if (errorMessages.length > 0) {
+        setError('Ошибки при создании: ' + errorMessages.join('; '));
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка создания отчета');
     } finally {
@@ -203,6 +292,7 @@ export function ReportsPage() {
       await cancelReport(cancelModal.reportId, cancelModal.reason || undefined);
       setCancelModal({ show: false, reportId: 0, reason: '' });
       await loadReports();
+      setSuccess('Отчет отменен, ТМЦ возвращены на склад');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка отмены отчета');
     } finally {
@@ -217,6 +307,7 @@ export function ReportsPage() {
     try {
       await deleteReport(reportId);
       await loadReports();
+      setSuccess('Отчет удален');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка удаления отчета');
     } finally {
@@ -224,17 +315,55 @@ export function ReportsPage() {
     }
   };
 
-  // Группировка оборудования по наименованию
-  const getGroupedEquipment = () => {
-    if (!stock?.equipment) return {};
-    const groups: Record<number, TechnicianEquipmentItem[]> = {};
-    stock.equipment.forEach(item => {
-      if (!groups[item.equipment_id]) {
-        groups[item.equipment_id] = [];
-      }
-      groups[item.equipment_id].push(item);
-    });
-    return groups;
+  // Экспорт с авторизацией через заголовок
+  const handleExportCsv = async () => {
+    try {
+      const filter: ReportsFilter = {};
+      if (filterUserId) filter.user_id = filterUserId;
+      if (filterDateFrom) filter.date_from = filterDateFrom;
+      if (filterDateTo) filter.date_to = filterDateTo;
+      
+      const response = await api.get('/api/reports/export/csv', {
+        params: filter,
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reports.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError('Ошибка экспорта: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const filter: ReportsFilter = {};
+      if (filterUserId) filter.user_id = filterUserId;
+      if (filterDateFrom) filter.date_from = filterDateFrom;
+      if (filterDateTo) filter.date_to = filterDateTo;
+      
+      const response = await api.get('/api/reports/export/excel', {
+        params: filter,
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reports.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError('Ошибка экспорта: ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   return (
@@ -256,7 +385,7 @@ export function ReportsPage() {
       {/* Табы */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          {isTechnician && (
+          {(isTechnician || isAdmin) && (
             <button
               onClick={() => setActiveTab('create')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -321,7 +450,7 @@ export function ReportsPage() {
               У вас не назначен склад. Обратитесь к администратору для привязки склада.
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Дата и время */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -391,130 +520,150 @@ export function ReportsPage() {
                 />
               </div>
               
-              {/* Тип ТМЦ */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Тип
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="equipment"
-                      checked={formData.item_type === 'equipment'}
-                      onChange={() => setFormData({ ...formData, item_type: 'equipment', equipment_id: 0, material_id: 0 })}
-                      className="mr-2"
-                    />
-                    Оборудование (по серийному номеру)
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="material"
-                      checked={formData.item_type === 'material'}
-                      onChange={() => setFormData({ ...formData, item_type: 'material', equipment_id: 0, material_id: 0 })}
-                      className="mr-2"
-                    />
-                    Материал
-                  </label>
-                </div>
-              </div>
-              
-              {/* Оборудование */}
-              {formData.item_type === 'equipment' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Оборудование *
-                    </label>
-                    <select
-                      value={formData.equipment_id}
-                      onChange={e => setFormData({ ...formData, equipment_id: Number(e.target.value) })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                    >
-                      <option value={0}>-- Выберите оборудование --</option>
-                      {Object.entries(getGroupedEquipment()).map(([equipId, items]) => (
-                        <option key={equipId} value={equipId}>
-                          {items[0].name} ({items.length} шт. доступно)
-                        </option>
+              {/* Раздел: Добавление позиций */}
+              <div className="border-t pt-4">
+                <h3 className="text-md font-semibold mb-3">Позиции для списания</h3>
+                
+                {/* Список добавленных позиций */}
+                {reportItems.length > 0 && (
+                  <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                    <div className="text-sm font-medium text-gray-600 mb-2">Добавлено:</div>
+                    <ul className="space-y-2">
+                      {reportItems.map(item => (
+                        <li key={item.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                          <span className="text-sm">
+                            {item.type === 'equipment' ? '📡' : '📦'} {getItemName(item)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            ✕
+                          </button>
+                        </li>
                       ))}
-                    </select>
+                    </ul>
                   </div>
-                  
-                  {selectedEquipment && (
+                )}
+                
+                {/* Форма добавления позиции */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Тип позиции */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Серийный номер *
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
                       <select
-                        value={formData.serial_number_id}
-                        onChange={e => setFormData({ ...formData, serial_number_id: Number(e.target.value) })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
+                        value={currentItem.type}
+                        onChange={e => setCurrentItem({
+                          ...currentItem,
+                          type: e.target.value as 'equipment' | 'material',
+                          equipment_id: 0,
+                          serial_number_id: 0,
+                          material_id: 0,
+                          quantity: 1,
+                        })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
                       >
-                        <option value={0}>-- Выберите серийный номер --</option>
-                        {getGroupedEquipment()[formData.equipment_id]?.map(item => (
-                          <option key={item.serial_id} value={item.serial_id}>
-                            {item.serial_number}
-                          </option>
-                        ))}
+                        <option value="equipment">Оборудование (по серийному номеру)</option>
+                        <option value="material">Материал</option>
                       </select>
                     </div>
-                  )}
-                  
-                  {stock.equipment.length === 0 && (
-                    <div className="text-yellow-600 bg-yellow-50 p-4 rounded-lg">
-                      На вашем складе нет доступного оборудования
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {/* Материалы */}
-              {formData.item_type === 'material' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Материал *
-                    </label>
-                    <select
-                      value={formData.material_id}
-                      onChange={e => setFormData({ ...formData, material_id: Number(e.target.value) })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                    >
-                      <option value={0}>-- Выберите материал --</option>
-                      {stock.materials.map(mat => (
-                        <option key={mat.material_id} value={mat.material_id}>
-                          {mat.name} (доступно: {mat.quantity} {mat.unit})
-                        </option>
-                      ))}
-                    </select>
+                    
+                    {/* Оборудование */}
+                    {currentItem.type === 'equipment' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
+                          <select
+                            value={currentItem.equipment_id}
+                            onChange={e => setCurrentItem({ ...currentItem, equipment_id: Number(e.target.value), serial_number_id: 0 })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          >
+                            <option value={0}>-- Выберите --</option>
+                            {Object.entries(getGroupedEquipment()).map(([equipId, items]) => (
+                              <option key={equipId} value={equipId}>
+                                {items[0].name} ({items.length} шт. доступно)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {currentItem.equipment_id > 0 && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Серийный номер</label>
+                            <select
+                              value={currentItem.serial_number_id}
+                              onChange={e => setCurrentItem({ ...currentItem, serial_number_id: Number(e.target.value) })}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            >
+                              <option value={0}>-- Выберите --</option>
+                              {getSerialNumbers(currentItem.equipment_id).map(item => (
+                                <option key={item.serial_id} value={item.serial_id}>
+                                  {item.serial_number}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        
+                        {stock.equipment.length === 0 && (
+                          <div className="text-yellow-600 text-sm col-span-2">
+                            На вашем складе нет доступного оборудования
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Материалы */}
+                    {currentItem.type === 'material' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Материал</label>
+                          <select
+                            value={currentItem.material_id}
+                            onChange={e => setCurrentItem({ ...currentItem, material_id: Number(e.target.value) })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          >
+                            <option value={0}>-- Выберите --</option>
+                            {stock.materials.map(mat => (
+                              <option key={mat.material_id} value={mat.material_id}>
+                                {mat.name} (доступно: {mat.quantity} {mat.unit})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Количество</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={stock.materials.find(m => m.material_id === currentItem.material_id)?.quantity || 1}
+                            value={currentItem.quantity}
+                            onChange={e => setCurrentItem({ ...currentItem, quantity: Number(e.target.value) })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          />
+                        </div>
+                        
+                        {stock.materials.length === 0 && (
+                          <div className="text-yellow-600 text-sm col-span-2">
+                            На вашем складе нет доступных материалов
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Количество *
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={stock.materials.find(m => m.material_id === formData.material_id)?.quantity || 1}
-                      value={formData.quantity}
-                      onChange={e => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-                  
-                  {stock.materials.length === 0 && (
-                    <div className="text-yellow-600 bg-yellow-50 p-4 rounded-lg">
-                      На вашем складе нет доступных материалов
-                    </div>
-                  )}
-                </>
-              )}
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 text-sm"
+                  >
+                    + Добавить позицию
+                  </button>
+                </div>
+              </div>
               
               {/* Примечание */}
               <div>
@@ -532,10 +681,10 @@ export function ReportsPage() {
               
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                disabled={loading || reportItems.length === 0}
+                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
               >
-                {loading ? 'Сохранение...' : 'Сохранить отчет'}
+                {loading ? 'Сохранение...' : `Сохранить отчет (${reportItems.length} поз.)`}
               </button>
             </form>
           )}
@@ -597,12 +746,14 @@ export function ReportsPage() {
             </div>
             <div className="flex justify-end mt-4 space-x-2">
               <button
+                type="button"
                 onClick={() => { setFilterUserId(undefined); setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
               >
                 Сбросить
               </button>
               <button
+                type="button"
                 onClick={() => loadReports()}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
@@ -613,18 +764,18 @@ export function ReportsPage() {
           
           {/* Экспорт */}
           <div className="flex justify-end space-x-2">
-            <a
-              href={exportReportsCsv({ user_id: filterUserId, date_from: filterDateFrom, date_to: filterDateTo })}
+            <button
+              onClick={handleExportCsv}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               Экспорт CSV
-            </a>
-            <a
-              href={exportReportsExcel({ user_id: filterUserId, date_from: filterDateFrom, date_to: filterDateTo })}
+            </button>
+            <button
+              onClick={handleExportExcel}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Экспорт Excel
-            </a>
+            </button>
           </div>
           
           {/* Таблица отчетов */}
@@ -839,12 +990,14 @@ export function ReportsPage() {
             </div>
             <div className="flex justify-end space-x-2">
               <button
+                type="button"
                 onClick={() => setCancelModal({ show: false, reportId: 0, reason: '' })}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
               >
                 Отмена
               </button>
               <button
+                type="button"
                 onClick={handleCancel}
                 className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
               >
