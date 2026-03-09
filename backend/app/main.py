@@ -19,6 +19,7 @@ from .equipment import router as equipment_router
 from .inventory import router as inventory_router
 from .materials import router as materials_router
 from .reports import router as reports_router
+from .tasks import router as tasks_router
 
 app = FastAPI(title="Server375 API")
 
@@ -50,6 +51,7 @@ app.include_router(equipment_router)
 app.include_router(inventory_router)
 app.include_router(materials_router)
 app.include_router(reports_router)
+app.include_router(tasks_router)
 
 
 @app.on_event("startup")

@@ -158,31 +158,117 @@ class WorkObject(Base):
 
 
 class WorkReport(Base):
-    """Отчеты о выполненных работах"""
+    """Отчеты о выполненных работах (старая таблица, оставлена для совместимости)"""
     __tablename__ = "work_reports"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     work_date = Column(DateTime, nullable=False, default=datetime.utcnow)
     work_object_id = Column(Integer, ForeignKey("work_objects.id"), nullable=True)
-    object_name = Column(String(200), nullable=True)  # Название объекта (введено вручную или из справочника)
+    object_name = Column(String(200), nullable=True)
     object_address = Column(String(500), nullable=True)
     equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
     serial_number_id = Column(Integer, ForeignKey("serial_numbers.id"), nullable=True)
     material_id = Column(Integer, ForeignKey("materials.id"), nullable=True)
     quantity = Column(Integer, default=1)
     notes = Column(Text, nullable=True)
-    status = Column(String(20), default="submitted", nullable=False)  # draft, submitted, approved, cancelled
+    status = Column(String(20), default="submitted", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
     cancelled_at = Column(DateTime, nullable=True)
     cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     cancel_reason = Column(Text, nullable=True)
     
-    # Связи
     user = relationship("User", foreign_keys=[user_id])
     work_object = relationship("WorkObject")
     equipment = relationship("Equipment")
     serial_number = relationship("SerialNumber")
     material = relationship("Material")
     canceller = relationship("User", foreign_keys=[cancelled_by])
+
+
+# ============ НОВАЯ СТРУКТУРА ЗАЯВОК ============
+
+class WorkType(Base):
+    """Справочник видов работ"""
+    __tablename__ = "work_types"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TaskRequest(Base):
+    """Заявки на выполнение работ"""
+    __tablename__ = "task_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    task_number = Column(String(50), nullable=True)  # № Таска
+    account_number = Column(String(50), nullable=True)  # Лицевой счет
+    subscriber_name = Column(String(200), nullable=True)  # ФИО абонента
+    city = Column(String(100), nullable=True)  # Город
+    address = Column(String(500), nullable=True)  # Адрес
+    priority = Column(String(50), default='Обычный')  # Приоритет
+    status = Column(String(20), default='new', nullable=False)  # new, in_progress, completed, cancelled
+    notes = Column(Text, nullable=True)  # Примечания
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    
+    user = relationship("User", foreign_keys=[user_id])
+    work_items = relationship("TaskWorkItem", back_populates="task_request", cascade="all, delete-orphan")
+    photos = relationship("TaskPhoto", back_populates="task_request", cascade="all, delete-orphan")
+
+
+class TaskWorkItem(Base):
+    """Виды работ в заявке (одна заявка - несколько видов работ)"""
+    __tablename__ = "task_work_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    task_request_id = Column(Integer, ForeignKey("task_requests.id"), nullable=False)
+    work_type_id = Column(Integer, ForeignKey("work_types.id"), nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    task_request = relationship("TaskRequest", back_populates="work_items")
+    work_type = relationship("WorkType")
+    equipment_items = relationship("TaskEquipmentItem", back_populates="work_item", cascade="all, delete-orphan")
+
+
+class TaskEquipmentItem(Base):
+    """Позиции оборудования/материалов в виде работ"""
+    __tablename__ = "task_equipment_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    task_work_item_id = Column(Integer, ForeignKey("task_work_items.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
+    serial_number_id = Column(Integer, ForeignKey("serial_numbers.id"), nullable=True)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=True)
+    quantity = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    work_item = relationship("TaskWorkItem", back_populates="equipment_items")
+    equipment = relationship("Equipment")
+    serial_number = relationship("SerialNumber")
+    material = relationship("Material")
+
+
+class TaskPhoto(Base):
+    """Фото к заявке"""
+    __tablename__ = "task_photos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    task_request_id = Column(Integer, ForeignKey("task_requests.id"), nullable=False)
+    work_type_id = Column(Integer, ForeignKey("work_types.id"), nullable=True)
+    file_path = Column(String(500), nullable=False)
+    file_name = Column(String(200), nullable=True)
+    description = Column(Text, nullable=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    task_request = relationship("TaskRequest", back_populates="photos")
+    work_type = relationship("WorkType")
+    uploader = relationship("User", foreign_keys=[uploaded_by])
