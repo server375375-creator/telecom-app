@@ -38,32 +38,37 @@ export const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4">
-      {/* Декоративные элементы */}
-      <div className="absolute top-20 right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+        <div className="absolute top-20 right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl"></div>
+      </div>
       
-      <div className="max-w-md w-full relative">
-        {/* Логотип и заголовок */}
+      <div className="max-w-md w-full relative z-10">
+        {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl shadow-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl shadow-2xl mb-4 border border-white/30">
             <span className="text-4xl">👤</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Server375</h1>
-          <p className="text-white/70">Создание нового аккаунта</p>
+          <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Server375</h1>
+          <p className="text-white/80 font-medium">Создание нового аккаунта</p>
         </div>
 
-        {/* Карточка регистрации */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-slate-800 text-center mb-2">
-            Регистрация
-          </h2>
-          <p className="text-center text-slate-500 text-sm mb-6">
-            Все новые пользователи получают роль «Техник»
-          </p>
+        {/* Register Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 backdrop-blur-xl">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              Регистрация
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Все новые пользователи получают роль «Техник»
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-5 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-center gap-3">
+            <div className="mb-5 p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 animate-fade-in">
               <span className="text-xl">⚠️</span>
               <span className="font-medium">{error}</span>
             </div>
@@ -75,7 +80,7 @@ export const Register = () => {
                 Имя пользователя
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">👤</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">👤</span>
                 <input
                   type="text"
                   value={username}
@@ -92,7 +97,7 @@ export const Register = () => {
                 Пароль
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">🔒</span>
                 <input
                   type="password"
                   value={password}
@@ -109,7 +114,7 @@ export const Register = () => {
                 Подтвердите пароль
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔐</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">🔐</span>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -124,12 +129,12 @@ export const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white rounded-xl hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 transition-all font-semibold text-lg shadow-lg shadow-teal-200"
+              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white rounded-xl hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 transition-all font-semibold text-lg shadow-lg shadow-teal-500/30"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-3">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Регистрация...
+                  <span>Регистрация...</span>
                 </span>
               ) : (
                 '✨ Зарегистрироваться'
@@ -147,8 +152,8 @@ export const Register = () => {
           </div>
         </div>
 
-        {/* Подпись */}
-        <p className="text-center text-white/50 text-sm mt-6">
+        {/* Footer */}
+        <p className="text-center text-white/60 text-sm mt-6">
           © 2024 Server375. Все права защищены.
         </p>
       </div>

@@ -26,29 +26,35 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
-      {/* Декоративные элементы */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl"></div>
+      </div>
       
-      <div className="max-w-md w-full relative">
-        {/* Логотип и заголовок */}
+      <div className="max-w-md w-full relative z-10">
+        {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl shadow-2xl mb-4">
-            <span className="text-4xl">🏭</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-xl shadow-2xl mb-4 border border-white/30">
+            <span className="text-4xl">📡</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Server375</h1>
-          <p className="text-white/70">Система управления складами</p>
+          <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Server375</h1>
+          <p className="text-white/80 font-medium">Система управления складами</p>
         </div>
 
-        {/* Карточка логина */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-slate-800 text-center mb-6">
-            Добро пожаловать!
-          </h2>
+        {/* Login Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 backdrop-blur-xl">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Добро пожаловать!
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">Войдите в свой аккаунт</p>
+          </div>
 
           {error && (
-            <div className="mb-5 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-center gap-3">
+            <div className="mb-5 p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 animate-fade-in">
               <span className="text-xl">⚠️</span>
               <span className="font-medium">{error}</span>
             </div>
@@ -60,7 +66,7 @@ export const Login = () => {
                 Имя пользователя
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">👤</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">👤</span>
                 <input
                   type="text"
                   value={username}
@@ -77,7 +83,7 @@ export const Login = () => {
                 Пароль
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">🔒</span>
                 <input
                   type="password"
                   value={password}
@@ -92,12 +98,12 @@ export const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-all font-semibold text-lg shadow-lg shadow-purple-200"
+              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-all font-semibold text-lg shadow-lg shadow-purple-500/30"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-3">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span className="text-sm text-slate-500">Вход...</span>
+                  <span>Вход...</span>
                 </span>
               ) : (
                 '🚀 Войти'
@@ -107,7 +113,7 @@ export const Login = () => {
 
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
             <p className="text-slate-600">
-              Нет аккаунла?{' '}
+              Нет аккаунта?{' '}
               <Link to="/register" className="text-indigo-600 hover:text-purple-600 font-semibold transition-colors">
                 Зарегистрироваться
               </Link>
@@ -115,9 +121,9 @@ export const Login = () => {
           </div>
         </div>
 
-        {/* Подпись */}
-        <p className="text-center text-white/50 text-sm mt-6">
-          © 2024 Server375. All rights protected.
+        {/* Footer */}
+        <p className="text-center text-white/60 text-sm mt-6">
+          © 2024 Server375. Все права защищены.
         </p>
       </div>
     </div>

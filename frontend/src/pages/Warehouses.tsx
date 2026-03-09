@@ -13,6 +13,27 @@ import {
 import type { Equipment } from '../types';
 import type { Warehouse } from '../types';
 
+// Функция для показа уведомлений
+const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+  const notification = document.createElement('div');
+  notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-fade-in ${
+    type === 'success' 
+      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' 
+      : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+  }`;
+  notification.innerHTML = `
+    <span class="text-lg">${type === 'success' ? '✓' : '⚠️'}</span>
+    <span class="font-medium">${message}</span>
+  `;
+  document.body.appendChild(notification);
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+    notification.style.transition = 'all 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 4000);
+};
+
 interface Transaction {
   id: number;
   equipment_name: string;
@@ -138,9 +159,10 @@ export const Warehouses = () => {
       await createWarehouse(newWarehouse);
       setNewWarehouse({ name: '', location: '', description: '', is_central: false });
       setShowCreateWarehouse(false);
+      showNotification('Склад успешно создан', 'success');
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Ошибка создания склада');
+      showNotification(err.response?.data?.detail || 'Ошибка создания склада', 'error');
     }
   };
 
@@ -150,9 +172,10 @@ export const Warehouses = () => {
       await transferEquipment(transferForm.serial_number, transferForm.to_warehouse_id, transferForm.notes);
       setTransferForm({ serial_number: '', to_warehouse_id: 0, notes: '' });
       setShowTransfer(false);
+      showNotification('Оборудование успешно перемещено', 'success');
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Ошибка перемещения');
+      showNotification(err.response?.data?.detail || 'Ошибка перемещения', 'error');
     }
   };
 
@@ -171,24 +194,23 @@ export const Warehouses = () => {
       }
       
       if (serialNumbers.length === 0) {
-        alert('Выберите хотя бы один серийный номер');
+        showNotification('Выберите хотя бы один серийный номер', 'error');
         return;
       }
       
       const destinationWarehouse = bulkTransferMode === 'select' ? targetWarehouse : bulkTransferForm.to_warehouse_id;
       
       if (!destinationWarehouse) {
-        alert('Выберите склад назначения');
+        showNotification('Выберите склад назначения', 'error');
         return;
       }
       
       const result = await bulkTransferEquipment(serialNumbers, destinationWarehouse, bulkTransferForm.notes);
       
       if (result.errors && result.errors.length > 0) {
-        const errorMessages = result.errors.map((e: any) => `${e.serial_number}: ${e.error}`).join('\n');
-        alert(`Перемещено: ${result.transferred}\nОшибки:\n${errorMessages}`);
+        showNotification(`Перемещено: ${result.transferred}, ошибок: ${result.errors.length}`, 'error');
       } else {
-        alert(`Успешно перемещено ${result.transferred} единиц оборудования`);
+        showNotification(`Успешно перемещено ${result.transferred} единиц оборудования`, 'success');
       }
       
       setSelectedSerials(new Set());
@@ -196,7 +218,7 @@ export const Warehouses = () => {
       setShowBulkTransfer(false);
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Ошибка массового перемещения');
+      showNotification(err.response?.data?.detail || 'Ошибка массового перемещения', 'error');
     }
   };
 
@@ -206,9 +228,10 @@ export const Warehouses = () => {
       await addStock(addStockForm.equipment_id, addStockForm.warehouse_id, addStockForm.quantity, addStockForm.notes);
       setAddStockForm({ equipment_id: 0, warehouse_id: 0, quantity: 1, notes: '' });
       setShowAddStock(false);
+      showNotification('Материалы успешно добавлены', 'success');
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Ошибка добавления');
+      showNotification(err.response?.data?.detail || 'Ошибка добавления', 'error');
     }
   };
 
@@ -218,9 +241,10 @@ export const Warehouses = () => {
       await writeOffStock(writeOffForm);
       setWriteOffForm({ equipment_id: 0, warehouse_id: 0, quantity: 1, serial_number: '', notes: '' });
       setShowWriteOff(false);
+      showNotification('Материалы успешно списаны', 'success');
       loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Ошибка списания');
+      showNotification(err.response?.data?.detail || 'Ошибка списания', 'error');
     }
   };
 
@@ -230,7 +254,7 @@ export const Warehouses = () => {
       setStockData(data);
       setShowStock(warehouseId);
     } catch (err) {
-      alert('Ошибка загрузки остатков');
+      showNotification('Ошибка загрузки остатков', 'error');
     }
   };
 
@@ -280,12 +304,23 @@ export const Warehouses = () => {
     }
   };
 
+  // Статистика
+  const totalWarehouses = warehouses.length;
+  const centralWarehouses = warehouses.filter(w => w.is_central).length;
+  const personalWarehouses = warehouses.filter(w => w.user_id).length;
+  const totalTransactions = transactions.length;
+
   return (
-    <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Склады</h1>
-        {isAdmin && (
-          <div className="flex gap-2 flex-wrap">
+    <div className="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🏭 Склады</h1>
+            <p className="text-slate-500 text-sm mt-1">Управление складами и перемещениями</p>
+          </div>
+          {isAdmin && (
+            <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => {
                 setSelectedSerials(new Set());
@@ -316,18 +351,67 @@ export const Warehouses = () => {
             </button>
             <button
               onClick={() => setShowCreateWarehouse(true)}
-              className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-indigo-700 shadow-md transition-all duration-200 font-medium"
+              className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/30 transition-all font-medium flex items-center gap-2"
             >
-              + Создать склад
+              <span className="text-lg">+</span> Создать склад
             </button>
           </div>
         )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-5 shadow-lg border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+              <span className="text-xl text-white">🏭</span>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{totalWarehouses}</div>
+              <div className="text-sm text-slate-500">Всего складов</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-lg border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
+              <span className="text-xl text-white">⭐</span>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{centralWarehouses}</div>
+              <div className="text-sm text-slate-500">Центральных</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-lg border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+              <span className="text-xl text-white">👤</span>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{personalWarehouses}</div>
+              <div className="text-sm text-slate-500">Личных</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-lg border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-md">
+              <span className="text-xl text-white">📋</span>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{totalTransactions}</div>
+              <div className="text-sm text-slate-500">Операций</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Загрузка...</p>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-indigo-500"></div>
+          <p className="mt-4 text-slate-500 font-medium">Загрузка данных...</p>
         </div>
       ) : (
         <>
