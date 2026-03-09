@@ -200,29 +200,36 @@ jobs:
         run: |
           cd updates-repo
           
-          # Windows manifest - правильный формат для Tauri v2
-          cat > windows-x86_64.json << EOF
+          # Получаем имена файлов из артефактов
+          WINDOWS_EXE=$(ls artifacts/windows/*.exe 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "ClassicGroupApp_${{ steps.version.outputs.version }}_x64-setup.exe")
+          LINUX_APPIMAGE=$(ls artifacts/linux/*.AppImage 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "classicgroupapp_${{ steps.version.outputs.version }}_amd64.AppImage")
+          
+          echo "Windows EXE: $WINDOWS_EXE"
+          echo "Linux AppImage: $LINUX_APPIMAGE"
+          
+          # Windows manifest - имя файла как в tauri.conf.json: x86_64-pc-windows-msvc.json
+          cat > x86_64-pc-windows-msvc.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
             "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
               "windows-x86_64": {
                 "signature": "${{ steps.signatures.outputs.windows_sig }}",
-                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/TelecomApp_${{ steps.version.outputs.version }}_x64-setup.exe"
+                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/${WINDOWS_EXE}"
               }
             }
           }
           EOF
           
-          # Linux manifest - правильный формат для Tauri v2
-          cat > linux-x86_64.json << EOF
+          # Linux manifest - имя файла как в tauri.conf.json: x86_64-unknown-linux-gnu.json
+          cat > x86_64-unknown-linux-gnu.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
             "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
               "linux-x86_64": {
                 "signature": "${{ steps.signatures.outputs.linux_sig }}",
-                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/telecomapp_${{ steps.version.outputs.version }}_amd64.AppImage"
+                "url": "https://github.com/server375375-creator/telecom-app/releases/download/v${{ steps.version.outputs.version }}/${LINUX_APPIMAGE}"
               }
             }
           }
@@ -237,9 +244,10 @@ jobs:
           <h1>Telecom App Update Server</h1>
           <p>Update manifests:</p>
           <ul>
-          <li><a href="windows-x86_64.json">windows-x86_64.json</a></li>
-          <li><a href="linux-x86_64.json">linux-x86_64.json</a></li>
+          <li><a href="x86_64-pc-windows-msvc.json">x86_64-pc-windows-msvc.json</a></li>
+          <li><a href="x86_64-unknown-linux-gnu.json">x86_64-unknown-linux-gnu.json</a></li>
           </ul>
+          <p>Current version: ${{ steps.version.outputs.version }}</p>
           </body>
           </html>
           EOF
