@@ -26,3 +26,9 @@ export const getCurrentUser = async (): Promise<User> => {
   const response = await api.get('/me');
   return response.data;
 };
+
+// Получить список пользователей (только для админа)
+export const getUsers = async (): Promise<User[]> => {
+  const response = await api.get('/users');
+  return response.data;
+};

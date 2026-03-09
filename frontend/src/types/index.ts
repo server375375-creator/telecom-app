@@ -180,3 +180,102 @@ export interface MaterialTransfer {
   quantity: number;
   notes?: string;
 }
+
+// ============ ОТЧЕТЫ МОНТАЖНИКОВ ============
+
+// Объект для выполнения работ
+export interface WorkObject {
+  id: number;
+  name: string;
+  address: string | null;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WorkObjectCreate {
+  name: string;
+  address?: string;
+  description?: string;
+}
+
+// Отчет о выполненной работе
+export interface WorkReport {
+  id: number;
+  user_id: number;
+  username: string;
+  work_date: string;
+  work_object_id: number | null;
+  object_name: string | null;
+  object_address: string | null;
+  equipment_id: number | null;
+  equipment_name: string | null;
+  equipment_material_number: string | null;
+  serial_number_id: number | null;
+  serial_number: string | null;
+  material_id: number | null;
+  material_name: string | null;
+  material_material_number: string | null;
+  quantity: number;
+  notes: string | null;
+  status: 'submitted' | 'approved' | 'cancelled';
+  created_at: string;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  cancelled_by_name: string | null;
+}
+
+// Создание отчета
+export interface WorkReportCreate {
+  work_date: string;
+  work_object_id?: number;
+  object_name?: string;
+  object_address?: string;
+  equipment_id?: number;
+  serial_number_id?: number;
+  material_id?: number;
+  quantity: number;
+  notes?: string;
+}
+
+// Статусы отчета
+export const REPORT_STATUS_LABELS: Record<WorkReport['status'], string> = {
+  submitted: 'Отправлен',
+  approved: 'Утвержден',
+  cancelled: 'Отменен',
+};
+
+// Остатки на складе монтажника
+export interface TechnicianStock {
+  warehouse_id: number | null;
+  equipment: TechnicianEquipmentItem[];
+  materials: TechnicianMaterialItem[];
+}
+
+export interface TechnicianEquipmentItem {
+  equipment_id: number;
+  material_number: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  serial_id: number;
+  serial_number: string;
+  status: string;
+}
+
+export interface TechnicianMaterialItem {
+  material_id: number;
+  material_number: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  quantity: number;
+}
+
+// Статистика по отчетам
+export interface ReportStats {
+  total_reports: number;
+  by_user: Array<{ username: string; count: number }>;
+  by_type: Array<{ type: string; count: number }>;
+  by_object: Array<{ object_name: string; count: number }>;
+}

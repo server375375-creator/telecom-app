@@ -143,3 +143,46 @@ class MaterialTransaction(Base):
     from_warehouse = relationship("Warehouse", foreign_keys=[from_warehouse_id])
     to_warehouse = relationship("Warehouse", foreign_keys=[to_warehouse_id])
     user = relationship("User", foreign_keys=[created_by])
+
+
+class WorkObject(Base):
+    """Объекты/адреса для выполнения работ"""
+    __tablename__ = "work_objects"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    address = Column(String(500), nullable=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WorkReport(Base):
+    """Отчеты о выполненных работах"""
+    __tablename__ = "work_reports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    work_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    work_object_id = Column(Integer, ForeignKey("work_objects.id"), nullable=True)
+    object_name = Column(String(200), nullable=True)  # Название объекта (введено вручную или из справочника)
+    object_address = Column(String(500), nullable=True)
+    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
+    serial_number_id = Column(Integer, ForeignKey("serial_numbers.id"), nullable=True)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=True)
+    quantity = Column(Integer, default=1)
+    notes = Column(Text, nullable=True)
+    status = Column(String(20), default="submitted", nullable=False)  # draft, submitted, approved, cancelled
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
+    cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cancel_reason = Column(Text, nullable=True)
+    
+    # Связи
+    user = relationship("User", foreign_keys=[user_id])
+    work_object = relationship("WorkObject")
+    equipment = relationship("Equipment")
+    serial_number = relationship("SerialNumber")
+    material = relationship("Material")
+    canceller = relationship("User", foreign_keys=[cancelled_by])

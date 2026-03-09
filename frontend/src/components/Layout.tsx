@@ -14,6 +14,7 @@ export const Layout = () => {
 
   const navItems = [
     { path: '/', label: 'Главная', icon: '🏠' },
+    { path: '/reports', label: 'Отчёты', icon: '📋' },
     { path: '/warehouses', label: 'Склады', icon: '🏭' },
     { path: '/equipment', label: 'Оборудование', icon: '📡' },
     { path: '/materials', label: 'Материалы', icon: '📦' },

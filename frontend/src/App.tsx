@@ -11,6 +11,7 @@ import { WarehouseForm } from './pages/WarehouseForm';
 import { EquipmentPage } from './pages/Equipment';
 import { MaterialsPage } from './pages/Materials';
 import { UsersPage } from './pages/Users';
+import { ReportsPage } from './pages/Reports';
 import { initApi } from './api/client';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
             />
             <Route path="equipment" element={<EquipmentPage />} />
             <Route path="materials" element={<MaterialsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route
               path="users"
               element={
