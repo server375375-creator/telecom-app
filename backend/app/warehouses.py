@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Optional
 
 from .db import get_db
 from .schemas import WarehouseCreate, WarehouseOut
@@ -151,23 +151,145 @@ def update_warehouse(
 @router.delete("/{warehouse_id}")
 def delete_warehouse(
     warehouse_id: int,
+    target_warehouse_id: Optional[int] = Query(None, description="ID склада для перемещения остатков"),
+    force: bool = Query(False, description="Принудительно удалить со всеми остатками"),
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    """Удалить склад (только админ)"""
+    """Удалить склад (только админ). 
+    
+    Параметры:
+    - target_warehouse_id: если указан, все остатки будут перемещены на этот склад
+    - force: если True, склад будет удалён со всеми остатками (без перемещения)
+    """
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admin can delete warehouses")
     
-    result = db.execute(
-        text("DELETE FROM warehouses WHERE id = :id RETURNING id"),
+    # Проверяем существование склада
+    warehouse = db.execute(
+        text("SELECT id, name, is_central FROM warehouses WHERE id = :id"),
         {"id": warehouse_id}
     ).first()
     
-    if not result:
+    if not warehouse:
         raise HTTPException(status_code=404, detail="Warehouse not found")
     
+    if warehouse[2]:  # is_central
+        raise HTTPException(status_code=400, detail="Cannot delete central warehouse")
+    
+    # Проверяем наличие остатков
+    has_serials = db.execute(
+        text("SELECT COUNT(*) FROM serial_numbers WHERE warehouse_id = :wid"),
+        {"wid": warehouse_id}
+    ).scalar()
+    
+    has_equipment_stock = db.execute(
+        text("SELECT COUNT(*) FROM warehouse_stock WHERE warehouse_id = :wid AND quantity > 0"),
+        {"wid": warehouse_id}
+    ).scalar()
+    
+    has_material_stock = db.execute(
+        text("SELECT COUNT(*) FROM material_stock WHERE warehouse_id = :wid AND quantity > 0"),
+        {"wid": warehouse_id}
+    ).scalar()
+    
+    total_items = (has_serials or 0) + (has_equipment_stock or 0) + (has_material_stock or 0)
+    
+    # Если есть остатки и не указан склад назначения и не force
+    if total_items > 0 and not target_warehouse_id and not force:
+        return {
+            "status": "has_items",
+            "message": f"На складе есть остатки: {has_serials} единиц оборудования, {has_equipment_stock} позиций складского учёта, {has_material_stock} позиций материалов. Укажите target_warehouse_id для перемещения или используйте force=true для удаления.",
+            "has_serials": has_serials,
+            "has_equipment_stock": has_equipment_stock,
+            "has_material_stock": has_material_stock
+        }
+    
+    # Если указан склад назначения
+    if target_warehouse_id:
+        # Проверяем существование целевого склада
+        target = db.execute(
+            text("SELECT id, name FROM warehouses WHERE id = :id"),
+            {"id": target_warehouse_id}
+        ).first()
+        
+        if not target:
+            raise HTTPException(status_code=404, detail="Target warehouse not found")
+        
+        if target_warehouse_id == warehouse_id:
+            raise HTTPException(status_code=400, detail="Cannot move to the same warehouse")
+        
+        # Перемещаем серийные номера
+        db.execute(
+            text("UPDATE serial_numbers SET warehouse_id = :target WHERE warehouse_id = :wid"),
+            {"target": target_warehouse_id, "wid": warehouse_id}
+        )
+        
+        # Перемещаем остатки оборудования
+        # Сначала получаем текущие остатки на целевом складе
+        db.execute(text("""
+            INSERT INTO warehouse_stock (warehouse_id, equipment_id, quantity)
+            SELECT :target, equipment_id, quantity FROM warehouse_stock 
+            WHERE warehouse_id = :wid
+            ON CONFLICT (warehouse_id, equipment_id) DO UPDATE 
+            SET quantity = warehouse_stock.quantity + EXCLUDED.quantity
+        """), {"target": target_warehouse_id, "wid": warehouse_id})
+        
+        db.execute(
+            text("DELETE FROM warehouse_stock WHERE warehouse_id = :wid"),
+            {"wid": warehouse_id}
+        )
+        
+        # Перемещаем остатки материалов
+        db.execute(text("""
+            INSERT INTO material_stock (warehouse_id, material_id, quantity)
+            SELECT :target, material_id, quantity FROM material_stock 
+            WHERE warehouse_id = :wid
+            ON CONFLICT (warehouse_id, material_id) DO UPDATE 
+            SET quantity = material_stock.quantity + EXCLUDED.quantity
+        """), {"target": target_warehouse_id, "wid": warehouse_id})
+        
+        db.execute(
+            text("DELETE FROM material_stock WHERE warehouse_id = :wid"),
+            {"wid": warehouse_id}
+        )
+        
+        # Записываем транзакции перемещения
+        moved_serials = has_serials or 0
+        moved_equipment = has_equipment_stock or 0
+        moved_materials = has_material_stock or 0
+        
+    elif force and total_items > 0:
+        # Удаляем все остатки при force
+        db.execute(text("UPDATE serial_numbers SET warehouse_id = NULL WHERE warehouse_id = :wid"), {"wid": warehouse_id})
+        db.execute(text("DELETE FROM warehouse_stock WHERE warehouse_id = :wid"), {"wid": warehouse_id})
+        db.execute(text("DELETE FROM material_stock WHERE warehouse_id = :wid"), {"wid": warehouse_id})
+    
+    # Отвязываем пользователей от склада
+    db.execute(
+        text("UPDATE users SET warehouse_id = NULL WHERE warehouse_id = :wid"),
+        {"wid": warehouse_id}
+    )
+    
+    # Удаляем склад
+    db.execute(
+        text("DELETE FROM warehouses WHERE id = :id"),
+        {"id": warehouse_id}
+    )
+    
     db.commit()
-    return {"status": "deleted"}
+    
+    result = {"status": "deleted", "warehouse_name": warehouse[1]}
+    
+    if target_warehouse_id:
+        result["moved_to"] = target[1]
+        result["moved_items"] = {
+            "serial_numbers": has_serials or 0,
+            "equipment_stock": has_equipment_stock or 0,
+            "materials": has_material_stock or 0
+        }
+    
+    return result
 
 
 @router.get("/{warehouse_id}/stock")
@@ -177,13 +299,13 @@ def get_warehouse_stock(
     user=Depends(get_current_user)
 ):
     """Получить остатки на складе"""
-    # Серийные номера на складе
+    # Серийные номера оборудования на складе
     serials = db.execute(text("""
         SELECT sn.id, sn.serial_number, sn.status, sn.notes,
                e.id as equipment_id, e.material_number, e.name as equipment_name, e.unit
         FROM serial_numbers sn
         JOIN equipment e ON sn.equipment_id = e.id
-        WHERE sn.warehouse_id = :wid
+        WHERE sn.warehouse_id = :wid AND sn.status != 'written_off'
         ORDER BY e.name, sn.serial_number
     """), {"wid": warehouse_id})
     
@@ -203,7 +325,7 @@ def get_warehouse_stock(
             }
         })
     
-    # Остатки несерийных материалов
+    # Остатки оборудования (несерийного)
     stock = db.execute(text("""
         SELECT ws.id, ws.quantity,
                e.id as equipment_id, e.material_number, e.name as equipment_name, e.unit
@@ -227,7 +349,32 @@ def get_warehouse_stock(
             }
         })
     
+    # Остатки материалов
+    materials = db.execute(text("""
+        SELECT ms.id, ms.quantity,
+               m.id as material_id, m.material_number, m.name as material_name, m.unit
+        FROM material_stock ms
+        JOIN materials m ON ms.material_id = m.id
+        WHERE ms.warehouse_id = :wid AND ms.quantity > 0
+        ORDER BY m.name
+    """), {"wid": warehouse_id})
+    
+    materials_list = []
+    for row in materials:
+        d = dict(row._mapping)
+        materials_list.append({
+            "id": d["id"],
+            "quantity": d["quantity"],
+            "material": {
+                "id": d["material_id"],
+                "material_number": d["material_number"],
+                "name": d["material_name"],
+                "unit": d["unit"]
+            }
+        })
+    
     return {
         "serial_numbers": serial_list,
-        "stock": stock_list
+        "stock": stock_list,
+        "materials": materials_list
     }

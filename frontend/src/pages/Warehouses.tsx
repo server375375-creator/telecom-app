@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { listWarehouses, createWarehouse } from '../api/warehouses';
+import { listWarehouses, createWarehouse, deleteWarehouse } from '../api/warehouses';
 import { 
   transferEquipment, 
   addStock, 
@@ -71,9 +71,21 @@ interface SerialItem {
   };
 }
 
+interface MaterialStockItem {
+  id: number;
+  quantity: number;
+  material: {
+    id: number;
+    material_number: string;
+    name: string;
+    unit: string;
+  };
+}
+
 interface WarehouseStockData {
   serial_numbers: SerialItem[];
   stock: StockItem[];
+  materials: MaterialStockItem[];
 }
 
 export const Warehouses = () => {
@@ -91,6 +103,10 @@ export const Warehouses = () => {
   const [showWriteOff, setShowWriteOff] = useState(false);
   const [showStock, setShowStock] = useState<number | null>(null);
   const [stockData, setStockData] = useState<WarehouseStockData | null>(null);
+  const [showDeleteWarehouse, setShowDeleteWarehouse] = useState<Warehouse | null>(null);
+  const [deleteTargetWarehouse, setDeleteTargetWarehouse] = useState<number>(0);
+  const [deleteHasItems, setDeleteHasItems] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   
   // Выбранные серийники для массового перемещения
   const [selectedSerials, setSelectedSerials] = useState<Set<string>>(new Set());
@@ -304,6 +320,58 @@ export const Warehouses = () => {
     }
   };
 
+  // Начало удаления склада
+  const handleStartDelete = async (wh: Warehouse, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (wh.is_central) {
+      showNotification('Нельзя удалить центральный склад', 'error');
+      return;
+    }
+    setDeleting(true);
+    try {
+      const result = await deleteWarehouse(wh.id);
+      if (result.status === 'has_items') {
+        setDeleteHasItems(result);
+        setShowDeleteWarehouse(wh);
+        setDeleteTargetWarehouse(0);
+      } else {
+        showNotification(`Склад "${wh.name}" успешно удалён`, 'success');
+        loadData();
+      }
+    } catch (err: any) {
+      showNotification(err.response?.data?.detail || 'Ошибка удаления склада', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Подтверждение удаления
+  const handleConfirmDelete = async () => {
+    if (!showDeleteWarehouse) return;
+    setDeleting(true);
+    try {
+      const result = await deleteWarehouse(showDeleteWarehouse.id, {
+        targetWarehouseId: deleteTargetWarehouse || undefined,
+        force: deleteTargetWarehouse === -1
+      });
+      if (result.status === 'deleted') {
+        if (result.moved_to) {
+          showNotification(`Склад "${showDeleteWarehouse.name}" удалён. Остатки перемещены на "${result.moved_to}"`, 'success');
+        } else {
+          showNotification(`Склад "${showDeleteWarehouse.name}" успешно удалён`, 'success');
+        }
+        setShowDeleteWarehouse(null);
+        setDeleteHasItems(null);
+        setDeleteTargetWarehouse(0);
+        loadData();
+      }
+    } catch (err: any) {
+      showNotification(err.response?.data?.detail || 'Ошибка удаления склада', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Статистика
   const totalWarehouses = warehouses.length;
   const centralWarehouses = warehouses.filter(w => w.is_central).length;
@@ -444,6 +512,15 @@ export const Warehouses = () => {
                 {wh.description && (
                   <p className="text-slate-400 text-sm mt-2">{wh.description}</p>
                 )}
+                {isAdmin && !wh.is_central && (
+                  <button
+                    onClick={(e) => handleStartDelete(wh, e)}
+                    disabled={deleting}
+                    className="mt-3 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    🗑️ Удалить
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -574,17 +651,17 @@ export const Warehouses = () => {
               {/* Остатки */}
               <div>
                 <h3 className="font-semibold mb-3 text-slate-700 flex items-center gap-2">
-                  <span>📋</span> Материалы
+                  <span>📋</span> Оборудование (несерийное)
                 </h3>
                 {stockData.stock.length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-4 bg-slate-50 rounded-lg">Нет материалов</p>
+                  <p className="text-slate-400 text-sm text-center py-4 bg-slate-50 rounded-lg">Нет оборудования</p>
                 ) : (
                   <div className="overflow-hidden rounded-xl border border-slate-200">
                     <table className="min-w-full divide-y divide-slate-100">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Материал</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Номер материала</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Оборудование</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Номер</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Количество</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ед. изм.</th>
                         </tr>
@@ -603,6 +680,41 @@ export const Warehouses = () => {
                   </div>
                 )}
               </div>
+
+              {/* Материалы */}
+              {(stockData.materials?.length > 0 || stockData.stock.length === 0) && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3 text-slate-700 flex items-center gap-2">
+                    <span>📦</span> Материалы
+                  </h3>
+                  {!stockData.materials || stockData.materials.length === 0 ? (
+                    <p className="text-slate-400 text-sm text-center py-4 bg-slate-50 rounded-lg">Нет материалов</p>
+                  ) : (
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                      <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Материал</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Номер</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Количество</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ед. изм.</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {stockData.materials.map((m) => (
+                            <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-4 py-3 text-sm text-slate-700">{m.material.name}</td>
+                              <td className="px-4 py-3 font-mono text-sm text-slate-500">{m.material.material_number}</td>
+                              <td className="px-4 py-3 text-center font-bold text-slate-800">{m.quantity}</td>
+                              <td className="px-4 py-3 text-sm text-slate-500">{m.material.unit}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1060,6 +1172,109 @@ export const Warehouses = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно: Удаление склада */}
+      {showDeleteWarehouse && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4">
+            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-red-50 to-white">
+              <h2 className="text-xl font-bold text-red-800">🗑️ Удаление склада</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-slate-700 mb-4">
+                Вы хотите удалить склад <strong>"{showDeleteWarehouse.name}"</strong>?
+              </p>
+              
+              {deleteHasItems && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                  <p className="text-amber-800 font-medium mb-2">⚠️ На складе есть остатки:</p>
+                  <ul className="text-sm text-amber-700 space-y-1">
+                    {deleteHasItems.has_serials > 0 && (
+                      <li>• {deleteHasItems.has_serials} ед. серийного оборудования</li>
+                    )}
+                    {deleteHasItems.has_equipment_stock > 0 && (
+                      <li>• {deleteHasItems.has_equipment_stock} поз. складского учёта</li>
+                    )}
+                    {deleteHasItems.has_material_stock > 0 && (
+                      <li>• {deleteHasItems.has_material_stock} поз. материалов</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              
+              {deleteHasItems && (
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600">Выберите действие:</p>
+                  
+                  <div className="space-y-2">
+                    <label className="flex items-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="deleteOption"
+                        value="0"
+                        checked={deleteTargetWarehouse === 0}
+                        onChange={() => setDeleteTargetWarehouse(0)}
+                        className="h-4 w-4 text-indigo-600"
+                      />
+                      <span className="ml-3 text-sm">
+                        <strong>Переместить на склад:</strong>
+                      </span>
+                    </label>
+                    
+                    {deleteTargetWarehouse === 0 && (
+                      <select
+                        value={deleteTargetWarehouse}
+                        onChange={(e) => setDeleteTargetWarehouse(Number(e.target.value))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500"
+                      >
+                        <option value={0}>Выберите склад для перемещения</option>
+                        {warehouses.filter(w => w.id !== showDeleteWarehouse?.id).map(w => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} {w.is_central ? '(Центральный)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    
+                    <label className="flex items-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="deleteOption"
+                        value="-1"
+                        checked={deleteTargetWarehouse === -1}
+                        onChange={() => setDeleteTargetWarehouse(-1)}
+                        className="h-4 w-4 text-red-600"
+                      />
+                      <span className="ml-3 text-sm text-red-600">
+                        <strong>Удалить без перемещения</strong> (остатки будут потеряны)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteWarehouse(null);
+                  setDeleteHasItems(null);
+                  setDeleteTargetWarehouse(0);
+                }}
+                className="px-5 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium text-slate-600"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting || (deleteHasItems && deleteTargetWarehouse === 0)}
+                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-md transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
           </div>
         </div>
       )}
