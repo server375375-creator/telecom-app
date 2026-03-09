@@ -315,8 +315,15 @@ export function ReportsPage() {
     }
   };
 
+  // Состояние для экспорта
+  const [exporting, setExporting] = useState(false);
+
   // Экспорт с авторизацией через заголовок
   const handleExportCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setError(null);
+    
     try {
       const filter: ReportsFilter = {};
       if (filterUserId) filter.user_id = filterUserId;
@@ -328,7 +335,21 @@ export function ReportsPage() {
         responseType: 'blob',
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Проверяем, что получили правильный тип данных
+      const contentType = response.headers['content-type'];
+      if (contentType && !contentType.includes('text/csv') && !contentType.includes('application/octet-stream')) {
+        // Возможно, пришла ошибка в JSON
+        const text = await response.data.text();
+        try {
+          const json = JSON.parse(text);
+          throw new Error(json.detail || 'Ошибка сервера');
+        } catch {
+          throw new Error(text || 'Неизвестная ошибка');
+        }
+      }
+      
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'reports.csv');
@@ -336,12 +357,20 @@ export function ReportsPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      setSuccess('CSV файл успешно скачан');
     } catch (err: any) {
-      setError('Ошибка экспорта: ' + (err.response?.data?.detail || err.message));
+      console.error('Export CSV error:', err);
+      setError('Ошибка экспорта CSV: ' + (err.message || err.response?.data?.detail || 'Неизвестная ошибка'));
+    } finally {
+      setExporting(false);
     }
   };
 
   const handleExportExcel = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setError(null);
+    
     try {
       const filter: ReportsFilter = {};
       if (filterUserId) filter.user_id = filterUserId;
@@ -353,7 +382,21 @@ export function ReportsPage() {
         responseType: 'blob',
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Проверяем, что получили правильный тип данных
+      const contentType = response.headers['content-type'];
+      if (contentType && !contentType.includes('spreadsheet') && !contentType.includes('application/octet-stream')) {
+        // Возможно, пришла ошибка в JSON
+        const text = await response.data.text();
+        try {
+          const json = JSON.parse(text);
+          throw new Error(json.detail || 'Ошибка сервера');
+        } catch {
+          throw new Error(text || 'Неизвестная ошибка');
+        }
+      }
+      
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'reports.xlsx');
@@ -361,8 +404,12 @@ export function ReportsPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      setSuccess('Excel файл успешно скачан');
     } catch (err: any) {
-      setError('Ошибка экспорта: ' + (err.response?.data?.detail || err.message));
+      console.error('Export Excel error:', err);
+      setError('Ошибка экспорта Excel: ' + (err.message || err.response?.data?.detail || 'Неизвестная ошибка'));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -766,15 +813,31 @@ export function ReportsPage() {
           <div className="flex justify-end space-x-2">
             <button
               onClick={handleExportCsv}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              Экспорт CSV
+              {exporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Экспорт...
+                </>
+              ) : (
+                'Экспорт CSV'
+              )}
             </button>
             <button
               onClick={handleExportExcel}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={exporting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              Экспорт Excel
+              {exporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Экспорт...
+                </>
+              ) : (
+                'Экспорт Excel'
+              )}
             </button>
           </div>
           
